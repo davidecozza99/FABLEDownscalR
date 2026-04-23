@@ -341,35 +341,59 @@ fdr_run_downscaling <- function(
   }
   message("n = number of spatial cells that have usable transition information for this origin land-use class after all filtering steps.")
 
-  # --- Ensure we have betas for every target pair (flat/zero priors if missing) ---
+  # --- Ensure we have betas for every target pair required by downscale() ---
 
-  # target pairs that DownscalR will require betas for (only those with positive targets)
+  ks_all <- sort(unique(as.character(X_long$ks)))
+
   target_pairs <- targets %>%
-    dplyr::filter(value > 0) %>%
-    dplyr::distinct(lu.from, lu.to)
+    dplyr::transmute(
+      lu.from = as.character(lu.from),
+      lu.to   = as.character(lu.to)
+    ) %>%
+    dplyr::distinct()
 
-  # beta pairs we actually estimated
-  beta_pairs <- pred_coeff_long %>%
-    dplyr::distinct(lu.from, lu.to)
+  existing_beta_keys <- pred_coeff_long %>%
+    dplyr::transmute(
+      lu.from = as.character(lu.from),
+      lu.to   = as.character(lu.to),
+      ks      = as.character(ks)
+    ) %>%
+    dplyr::distinct()
 
-  # find missing
-  missing_pairs <- dplyr::anti_join(target_pairs, beta_pairs, by = c("lu.from", "lu.to"))
+  required_beta_keys <- tidyr::crossing(
+    target_pairs,
+    ks = ks_all
+  )
 
-  if (nrow(missing_pairs) > 0) {
+  missing_beta_keys <- dplyr::anti_join(
+    required_beta_keys,
+    existing_beta_keys,
+    by = c("lu.from", "lu.to", "ks")
+  )
+
+  if (nrow(missing_beta_keys) > 0) {
     message(
-      "Completing betas with flat (0) priors for missing target pairs: ",
-      paste(paste0(missing_pairs$lu.from, "->", missing_pairs$lu.to), collapse = ", ")
+      "Completing missing beta coefficients with 0 for ",
+      nrow(missing_beta_keys), " (lu.from, lu.to, ks) combinations."
     )
 
-    # IMPORTANT: use the *same* ks that exist in X_long
-    ks_all <- sort(unique(X_long$ks))
-
-    filler <- tidyr::crossing(missing_pairs, ks = ks_all) %>%
+    filler <- missing_beta_keys %>%
       dplyr::mutate(value = 0)
 
     pred_coeff_long <- dplyr::bind_rows(pred_coeff_long, filler)
   }
 
+  pred_coeff_long <- pred_coeff_long %>%
+    dplyr::mutate(
+      lu.from = as.character(lu.from),
+      lu.to   = as.character(lu.to),
+      ks      = as.character(ks),
+      value   = as.numeric(value)
+    ) %>%
+    dplyr::summarise(
+      value = dplyr::first(value),
+      .by = c(lu.from, lu.to, ks)
+    )
 
   # ---------------------------------------------------------------------------
   # 4) Run DownscalR spatial allocation
