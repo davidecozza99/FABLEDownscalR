@@ -75,15 +75,12 @@ fdr_plot_downscaled_maps <- function(
 
   p <- ggplot2::ggplot(plot_df) +
     ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value, group = lu.to)) +
-    # ggplot2::labs(fill = "1000 ha")+
-    ggh4x::facetted_pos_scales(
-      fill = list(
-        cropland = ggplot2::scale_fill_gradient(low="white", high="#B8860B"),
-        forest = ggplot2::scale_fill_gradient(low="white", high="#006400"),
-        newforest = ggplot2::scale_fill_gradient(low="white", high="#90EE90"),
-        otherland = ggplot2::scale_fill_gradient(low="white", high="#6A0DAD"),
-        pasture = ggplot2::scale_fill_gradient(low="white", high="#B22222")
-      )
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "darkgreen",
+      limits = limits,
+      na.value = na_color,
+      name = "1000 ha"
     ) +
     #ggplot2::labs(title = "")
     ggplot2::coord_equal(expand = FALSE) +
