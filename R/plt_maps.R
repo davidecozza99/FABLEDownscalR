@@ -148,7 +148,14 @@ fdr_plot_downscaled_maps <- function(
   # -----------------------------
   # LU order
   # -----------------------------
-  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest")
+  lu_order <- c(
+    "cropland",
+    "forest",
+    "newforest",
+    "otherland",
+    "pasture",
+    "urban"
+  )
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
   # -----------------------------
@@ -171,7 +178,8 @@ fdr_plot_downscaled_maps <- function(
     forest = "#006400",
     newforest = "#90EE90",
     otherland = "#6A0DAD",
-    pasture = "#B22222"
+    pasture = "#B22222",
+    urban = "#2F2F2F"
   )
 
   lu_labels <- c(
@@ -179,7 +187,8 @@ fdr_plot_downscaled_maps <- function(
     forest = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture"
+    pasture = "Pasture",
+    urban = "Urban"
   )
 
   # -----------------------------
