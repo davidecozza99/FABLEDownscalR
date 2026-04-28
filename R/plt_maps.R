@@ -54,56 +54,53 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # LIGHT GRID BETWEEN PANELS (maps structure)
+      # MATRIX GRID (THIS IS THE KEY)
       # -----------------------
-      panel.grid.major = ggplot2::element_line(
-        color = "grey95",
-        linewidth = 0.3
+      panel.border = ggplot2::element_rect(
+        fill = NA,
+        color = "grey90",   # light grid lines
+        linewidth = 0.4
       ),
-      panel.grid.minor = ggplot2::element_blank(),
 
-      # no heavy frame
-      panel.border = ggplot2::element_blank(),
-
-      # spacing between LU × years
-      panel.spacing = ggplot2::unit(0.8, "lines"),
+      panel.spacing = ggplot2::unit(0, "lines"),  # removes gaps → continuous grid
 
       # -----------------------
-      # FACET STRIPS
+      # Facet strips (clean labels)
       # -----------------------
       strip.background = ggplot2::element_blank(),
 
       strip.text.x = ggplot2::element_text(
         face = "bold",
-        color = "#2C3E50",
+        color = "black",
         size = 11
       ),
 
       strip.text.y = ggplot2::element_text(
         face = "bold",
-        color = "#1B4F72",
+        color = "black",
         size = 11,
-        angle = 90
+        angle = 270
       ),
 
       strip.placement = "outside",
 
       # -----------------------
-      # AXES (clean map style)
+      # Map style (clean)
       # -----------------------
+      panel.grid = ggplot2::element_blank(),
+
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
 
       # -----------------------
-      # LEGEND
+      # Legend
       # -----------------------
       legend.position = "bottom",
       legend.title = ggplot2::element_text(size = 10),
       legend.text = ggplot2::element_text(size = 9)
     )
 }
-
 
 
 
