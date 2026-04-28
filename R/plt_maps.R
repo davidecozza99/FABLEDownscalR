@@ -74,8 +74,9 @@ fdr_plot_downscaled_maps <- function(
 
   ggplot2::ggplot(plot_df) +
     ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value, group = lu.to)) +
-    ggplot2::scale_fill_distiller(
-      palette = palette,
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "darkgreen",
       limits = limits,
       na.value = na_color
     ) +
