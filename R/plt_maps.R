@@ -43,7 +43,7 @@ theme_fdr_map <- function(base_size = 11) {
     ggplot2::theme(
 
       # -----------------------
-      # Overall background
+      # Background
       # -----------------------
       panel.background = ggplot2::element_rect(
         fill = "white",
@@ -55,35 +55,33 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # Panels (subtle structure)
+      # Panels (no frame)
       # -----------------------
       panel.grid = ggplot2::element_blank(),
-      panel.border = ggplot2::element_rect(
-        color = "grey85",
-        fill = NA,
-        linewidth = 0.3
-      ),
+      panel.border = ggplot2::element_blank(),
 
       # -----------------------
-      # Facet strips (clean + modern)
+      # Facet strips
       # -----------------------
       strip.background = ggplot2::element_blank(),
 
+      # X strips (LU)
       strip.text.x = ggplot2::element_text(
         face = "bold",
-        color = "#2C3E50",
-        size = 11
+        color = "black",
+        size = 12
       ),
 
+      # Y strips (years)
       strip.text.y = ggplot2::element_text(
         face = "bold",
-        color = "#1B4F72",
-        size = 11,
-        angle = 0
+        color = "black",
+        size = 12,
+        angle = 90
       ),
 
       # -----------------------
-      # Axes (minimal)
+      # Map-style axes
       # -----------------------
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
@@ -240,15 +238,15 @@ fdr_plot_downscaled_maps <- function(
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map()+
-    ggplot2::theme(legend.position = "none") +
+    ggplot2::theme(legend.position = "bottom") +
     ggplot2::facet_grid(
       times ~ lu.to,
       labeller = ggplot2::labeller(lu.to = c(
-        cropland = "🌾 Cropland",
-        forest = "🌳 Forest",
-        newforest = "🌱 New forest",
+        cropland = "Cropland",
+        forest = "Forest",
+        newforest = "New forest",
         otherland = "Other land",
-        pasture = "🐄 Pasture"
+        pasture = "Pasture"
       ))
     )
 
