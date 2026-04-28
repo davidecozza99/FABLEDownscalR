@@ -91,7 +91,7 @@ fdr_plot_downscaled_maps <- function(
   if (add_border) {
 
     # Convert raster to polygon boundary
-    country_border <- terra::as.polygons(rasterized_layer, dissolve = TRUE)
+    country_border <- terra::boundaries(rasterized_layer, type = "outer")
     country_border <- sf::st_as_sf(country_border)
 
     # Add border on top of plot
