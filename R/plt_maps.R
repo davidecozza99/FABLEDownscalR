@@ -75,23 +75,37 @@ fdr_plot_downscaled_maps <- function(
 
   p <- ggplot2::ggplot(plot_df) +
     ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value, group = lu.to)) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "darkgreen",
-      limits = limits,
-      na.value = na_color
+    # ggplot2::labs(fill = "1000 ha")+
+    ggh4x::facetted_pos_scales(
+      fill = list(
+        cropland = ggplot2::scale_fill_gradient(low="white", high="#B8860B"),
+        forest = ggplot2::scale_fill_gradient(low="white", high="#006400"),
+        newforest = ggplot2::scale_fill_gradient(low="white", high="#90EE90"),
+        otherland = ggplot2::scale_fill_gradient(low="white", high="#6A0DAD"),
+        pasture = ggplot2::scale_fill_gradient(low="white", high="#B22222")
+      )
     ) +
     #ggplot2::labs(title = "")
     ggplot2::coord_equal(expand = FALSE) +
     ggthemes::theme_map() +
     ggplot2::theme(legend.position = "bottom") +
-    ggplot2::facet_grid(times ~ lu.to)
-
+    ggplot2::facet_grid(
+      times ~ lu.to,
+      labeller = ggplot2::labeller(lu.to = c(
+        "cropland" = "Cropland",
+        "pasture" = "Pasture",
+        "newforest" = "New forest",
+        "otherland" = "Otherland"
+      ))
+    )
 
   if (add_border) {
 
     # Convert raster to polygon boundary
-    country_border <- terra::boundaries(rasterized_layer, type = "outer")
+    r <- rasterized_layer
+    r[!is.na(r)] <- 1  # collapse to single class
+
+    country_border <- terra::as.polygons(r, dissolve = TRUE)
     country_border <- sf::st_as_sf(country_border)
 
     # Add border on top of plot
