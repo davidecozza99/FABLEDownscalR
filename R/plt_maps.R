@@ -144,7 +144,7 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  lu_order <- c("cropland",  "newforest","otherland",  "pasture", "forest",)
+  lu_order <- c("cropland",  "newforest","otherland",  "pasture", "forest")
 
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
