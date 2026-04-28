@@ -134,7 +134,7 @@ fdr_plot_downscaled_maps <- function(
     dplyr::summarise(value = sum(value), .groups = "drop")
 
   if (!is.null(LU)) {
-    inputs <- inputs %>% dplyr::filter(lu.to == LU)
+    inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
   }
 
   if (!is.null(year)) {
