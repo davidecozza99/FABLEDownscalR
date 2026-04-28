@@ -35,7 +35,6 @@ fdr_to_ns_int <- function(df, ns_map) {
 # -----------------------------------------------------------------------------
 
 
-
 theme_fdr_map <- function(base_size = 11) {
 
   ggplot2::theme_minimal(base_size = base_size) +
@@ -55,33 +54,39 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # Panels (no frame)
+      # SOFT GRID FRAME
       # -----------------------
       panel.grid = ggplot2::element_blank(),
-      panel.border = ggplot2::element_blank(),
+
+      panel.border = ggplot2::element_rect(
+        fill = NA,
+        color = "grey92",
+        linewidth = 0.4
+      ),
+
+      # spacing between facets
+      panel.spacing = ggplot2::unit(0.6, "lines"),
 
       # -----------------------
       # Facet strips
       # -----------------------
       strip.background = ggplot2::element_blank(),
 
-      # X strips (LU)
       strip.text.x = ggplot2::element_text(
         face = "bold",
         color = "black",
-        size = 12
+        size = 11
       ),
 
-      # Y strips (years)
       strip.text.y = ggplot2::element_text(
         face = "bold",
         color = "black",
-        size = 12,
+        size = 11,
         angle = 90
       ),
 
       # -----------------------
-      # Map-style axes
+      # Axes (map style)
       # -----------------------
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
@@ -92,12 +97,7 @@ theme_fdr_map <- function(base_size = 11) {
       # -----------------------
       legend.position = "bottom",
       legend.title = ggplot2::element_text(size = 10),
-      legend.text = ggplot2::element_text(size = 9),
-
-      # -----------------------
-      # Spacing
-      # -----------------------
-      panel.spacing = ggplot2::unit(0.8, "lines")
+      legend.text = ggplot2::element_text(size = 9)
     )
 }
 
@@ -144,7 +144,7 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  lu_order <- c("cropland",  "newforest","otherland", "forest", "pasture")
+  lu_order <- c("cropland",  "newforest","otherland",  "pasture", "forest",)
 
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
