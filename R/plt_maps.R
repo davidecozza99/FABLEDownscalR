@@ -33,6 +33,79 @@ fdr_to_ns_int <- function(df, ns_map) {
 #' @param na_color fill color for NA pixels
 #' @export
 # -----------------------------------------------------------------------------
+
+
+
+theme_fdr_map <- function(base_size = 11) {
+
+  ggplot2::theme_minimal(base_size = base_size) +
+
+    ggplot2::theme(
+
+      # -----------------------
+      # Overall background
+      # -----------------------
+      panel.background = ggplot2::element_rect(
+        fill = "white",
+        color = NA
+      ),
+      plot.background = ggplot2::element_rect(
+        fill = "white",
+        color = NA
+      ),
+
+      # -----------------------
+      # Panels (subtle structure)
+      # -----------------------
+      panel.grid = ggplot2::element_blank(),
+      panel.border = ggplot2::element_rect(
+        color = "grey85",
+        fill = NA,
+        linewidth = 0.3
+      ),
+
+      # -----------------------
+      # Facet strips (clean + modern)
+      # -----------------------
+      strip.background = ggplot2::element_blank(),
+
+      strip.text.x = ggplot2::element_text(
+        face = "bold",
+        color = "#2C3E50",
+        size = 11
+      ),
+
+      strip.text.y = ggplot2::element_text(
+        face = "bold",
+        color = "#1B4F72",
+        size = 11,
+        angle = 0
+      ),
+
+      # -----------------------
+      # Axes (minimal)
+      # -----------------------
+      axis.title = ggplot2::element_blank(),
+      axis.text = ggplot2::element_blank(),
+      axis.ticks = ggplot2::element_blank(),
+
+      # -----------------------
+      # Legend
+      # -----------------------
+      legend.position = "bottom",
+      legend.title = ggplot2::element_text(size = 10),
+      legend.text = ggplot2::element_text(size = 9),
+
+      # -----------------------
+      # Spacing
+      # -----------------------
+      panel.spacing = ggplot2::unit(0.8, "lines")
+    )
+}
+
+
+
+
 fdr_plot_downscaled_maps <- function(
     out_res,
     rasterized_layer,
@@ -73,7 +146,7 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  lu_order <- c("cropland",  "newforest", "forest","otherland", "pasture")
+  lu_order <- c("cropland",  "newforest","otherland", "forest", "pasture")
 
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
@@ -166,16 +239,16 @@ fdr_plot_downscaled_maps <- function(
   # -----------------------------
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
-    ggthemes::theme_map() +
-    ggplot2::theme(legend.position = "bottom") +
+    theme_fdr_map()+
+    ggplot2::theme(legend.position = "none") +
     ggplot2::facet_grid(
       times ~ lu.to,
       labeller = ggplot2::labeller(lu.to = c(
-        cropland = "Cropland",
-        forest = "Forest",
-        newforest = "New forest",
+        cropland = "🌾 Cropland",
+        forest = "🌳 Forest",
+        newforest = "🌱 New forest",
         otherland = "Other land",
-        pasture = "Pasture"
+        pasture = "🐄 Pasture"
       ))
     )
 
