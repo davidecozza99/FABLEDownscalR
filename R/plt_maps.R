@@ -40,7 +40,8 @@ fdr_plot_downscaled_maps <- function(
     year=NULL, LU=NULL,
     limits = NULL,
     palette = "Greens",
-    na_color = "grey90"
+    na_color = "grey90",
+    add_border = TRUE
 ) {
   chk_required_cols(out_res, c("ns","lu.to","times","value"))
 
@@ -85,4 +86,23 @@ fdr_plot_downscaled_maps <- function(
     ggthemes::theme_map() +
     ggplot2::theme(legend.position = "bottom") +
     ggplot2::facet_grid(times ~ lu.to)
+
+
+  if (add_border) {
+
+    # Convert raster to polygon boundary
+    country_border <- terra::as.polygons(rasterized_layer, dissolve = TRUE)
+    country_border <- sf::st_as_sf(country_border)
+
+    # Add border on top of plot
+    p <- p +
+      ggplot2::geom_sf(
+        data = country_border,
+        fill = NA,
+        color = "black",
+        linewidth = 0.5
+      )
+  }
+
+  return(p)
 }
