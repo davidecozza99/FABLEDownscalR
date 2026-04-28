@@ -73,18 +73,27 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
+  # -----------------------------
+  # FORCE LU ORDER (IMPORTANT)
+  # -----------------------------
+  lu_order <- c("cropland", "forest", "newforest", "otherland", "pasture")
+  plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
+
+  # -----------------------------
+  # limits
+  # -----------------------------
   if (is.null(limits)) {
     limits <- range(plot_df$value, na.rm = TRUE)
   }
 
   # -----------------------------
-  # Build plot with ggnewscale
+  # Plot
   # -----------------------------
   library(ggnewscale)
 
   p <- ggplot2::ggplot()
 
-  # ---- CROPLAND
+  # CROPLAND
   p <- p +
     ggplot2::geom_raster(
       data = dplyr::filter(plot_df, lu.to == "cropland"),
@@ -93,13 +102,12 @@ fdr_plot_downscaled_maps <- function(
     ggplot2::scale_fill_gradient(
       low = "white",
       high = "#B8860B",
-      limits = limits,
-      name = "Cropland (1000 ha)"
+      limits = limits
     )
 
   p <- p + ggnewscale::new_scale_fill()
 
-  # ---- FOREST
+  # FOREST
   p <- p +
     ggplot2::geom_raster(
       data = dplyr::filter(plot_df, lu.to == "forest"),
@@ -108,13 +116,12 @@ fdr_plot_downscaled_maps <- function(
     ggplot2::scale_fill_gradient(
       low = "white",
       high = "#006400",
-      limits = limits,
-      name = "Forest (1000 ha)"
+      limits = limits
     )
 
   p <- p + ggnewscale::new_scale_fill()
 
-  # ---- NEW FOREST
+  # NEW FOREST
   p <- p +
     ggplot2::geom_raster(
       data = dplyr::filter(plot_df, lu.to == "newforest"),
@@ -123,13 +130,12 @@ fdr_plot_downscaled_maps <- function(
     ggplot2::scale_fill_gradient(
       low = "white",
       high = "#90EE90",
-      limits = limits,
-      name = "New forest (1000 ha)"
+      limits = limits
     )
 
   p <- p + ggnewscale::new_scale_fill()
 
-  # ---- OTHER LAND
+  # OTHER LAND
   p <- p +
     ggplot2::geom_raster(
       data = dplyr::filter(plot_df, lu.to == "otherland"),
@@ -138,13 +144,12 @@ fdr_plot_downscaled_maps <- function(
     ggplot2::scale_fill_gradient(
       low = "white",
       high = "#6A0DAD",
-      limits = limits,
-      name = "Other land (1000 ha)"
+      limits = limits
     )
 
   p <- p + ggnewscale::new_scale_fill()
 
-  # ---- PASTURE
+  # PASTURE
   p <- p +
     ggplot2::geom_raster(
       data = dplyr::filter(plot_df, lu.to == "pasture"),
@@ -153,8 +158,7 @@ fdr_plot_downscaled_maps <- function(
     ggplot2::scale_fill_gradient(
       low = "white",
       high = "#B22222",
-      limits = limits,
-      name = "Pasture (1000 ha)"
+      limits = limits
     )
 
   # -----------------------------
@@ -163,7 +167,7 @@ fdr_plot_downscaled_maps <- function(
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     ggthemes::theme_map() +
-    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::theme(legend.position = "none") +  # IMPORTANT: avoids broken multi-legends
     ggplot2::facet_grid(
       times ~ lu.to,
       labeller = ggplot2::labeller(lu.to = c(
@@ -176,7 +180,7 @@ fdr_plot_downscaled_maps <- function(
     )
 
   # -----------------------------
-  # Border
+  # Border (FIXED)
   # -----------------------------
   if (add_border) {
 
