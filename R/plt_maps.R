@@ -37,75 +37,155 @@ fdr_plot_downscaled_maps <- function(
     out_res,
     rasterized_layer,
     ns_map,
-    year=NULL, LU=NULL,
+    year = NULL,
+    LU = NULL,
     limits = NULL,
-    palette = "Greens",
     na_color = "grey90",
     add_border = TRUE
 ) {
-  chk_required_cols(out_res, c("ns","lu.to","times","value"))
 
-  # Convert id_c -> ns_int (so we can paint the raster)
+  chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
+
+  # -----------------------------
+  # Convert ids to raster index
+  # -----------------------------
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
-  # Pixel canvas from raster
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  ns = lu.to = times = value = x = y= NULL
-  if(is.null(year) & is.null(LU)){
-    inputs <- out_int %>% dplyr::group_by(ns, lu.to, times) %>% dplyr::summarise(value = sum(value),.groups = "keep")
-  } else if(!(is.null(year) | is.null(LU))){
-    inputs <- out_int %>% dplyr::group_by(ns, lu.to, times) %>% dplyr::summarise(value = sum(value),.groups = "keep") %>% subset(lu.to==LU & times==year)
-  } else if(is.null(year)){
-    inputs <- out_int %>% dplyr::group_by(ns, lu.to, times) %>% dplyr::summarise(value = sum(value),.groups = "keep") %>% subset(lu.to==LU)
-  } else {
-    inputs <- out_int %>% dplyr::group_by(ns, lu.to, times) %>% dplyr::summarise(value = sum(value),.groups = "keep") %>% subset(times==year)
+  # -----------------------------
+  # Aggregate + filter
+  # -----------------------------
+  inputs <- out_int %>%
+    dplyr::group_by(ns, lu.to, times) %>%
+    dplyr::summarise(value = sum(value), .groups = "drop")
+
+  if (!is.null(LU)) {
+    inputs <- inputs %>% dplyr::filter(lu.to == LU)
+  }
+  if (!is.null(year)) {
+    inputs <- inputs %>% dplyr::filter(times == year)
   }
 
-  # Join pixels to values (many-to-many because we facet by lu.to and times)
-  plot_df <- dplyr::left_join(df_pix, inputs, by = "ns", relationship = "many-to-many") %>%
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  # Stable global limits if not provided
   if (is.null(limits)) {
     limits <- range(plot_df$value, na.rm = TRUE)
   }
 
-  p <- ggplot2::ggplot(plot_df) +
-    ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value, group = lu.to)) +
+  # -----------------------------
+  # Build plot with ggnewscale
+  # -----------------------------
+  library(ggnewscale)
+
+  p <- ggplot2::ggplot()
+
+  # ---- CROPLAND
+  p <- p +
+    ggplot2::geom_raster(
+      data = dplyr::filter(plot_df, lu.to == "cropland"),
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
     ggplot2::scale_fill_gradient(
       low = "white",
-      high = "darkgreen",
+      high = "#B8860B",
       limits = limits,
-      na.value = na_color,
-      name = "1000 ha"
+      name = "Cropland (1000 ha)"
+    )
+
+  p <- p + ggnewscale::new_scale_fill()
+
+  # ---- FOREST
+  p <- p +
+    ggplot2::geom_raster(
+      data = dplyr::filter(plot_df, lu.to == "forest"),
+      ggplot2::aes(x = x, y = y, fill = value)
     ) +
-    #ggplot2::labs(title = "")
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "#006400",
+      limits = limits,
+      name = "Forest (1000 ha)"
+    )
+
+  p <- p + ggnewscale::new_scale_fill()
+
+  # ---- NEW FOREST
+  p <- p +
+    ggplot2::geom_raster(
+      data = dplyr::filter(plot_df, lu.to == "newforest"),
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "#90EE90",
+      limits = limits,
+      name = "New forest (1000 ha)"
+    )
+
+  p <- p + ggnewscale::new_scale_fill()
+
+  # ---- OTHER LAND
+  p <- p +
+    ggplot2::geom_raster(
+      data = dplyr::filter(plot_df, lu.to == "otherland"),
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "#6A0DAD",
+      limits = limits,
+      name = "Other land (1000 ha)"
+    )
+
+  p <- p + ggnewscale::new_scale_fill()
+
+  # ---- PASTURE
+  p <- p +
+    ggplot2::geom_raster(
+      data = dplyr::filter(plot_df, lu.to == "pasture"),
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
+    ggplot2::scale_fill_gradient(
+      low = "white",
+      high = "#B22222",
+      limits = limits,
+      name = "Pasture (1000 ha)"
+    )
+
+  # -----------------------------
+  # Layout
+  # -----------------------------
+  p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     ggthemes::theme_map() +
     ggplot2::theme(legend.position = "bottom") +
     ggplot2::facet_grid(
       times ~ lu.to,
       labeller = ggplot2::labeller(lu.to = c(
-        "cropland" = "Cropland",
-        "pasture" = "Pasture",
-        "newforest" = "New forest",
-        "otherland" = "Otherland"
+        cropland = "Cropland",
+        forest = "Forest",
+        newforest = "New forest",
+        otherland = "Other land",
+        pasture = "Pasture"
       ))
     )
 
+  # -----------------------------
+  # Border
+  # -----------------------------
   if (add_border) {
 
-    # Convert raster to polygon boundary
     r <- rasterized_layer
-    r[!is.na(r)] <- 1  # collapse to single class
+    r[!is.na(r)] <- 1
 
     country_border <- terra::as.polygons(r, dissolve = TRUE)
     country_border <- sf::st_as_sf(country_border)
 
-    # Add border on top of plot
     p <- p +
       ggplot2::geom_sf(
         data = country_border,
