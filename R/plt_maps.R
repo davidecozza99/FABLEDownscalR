@@ -136,6 +136,7 @@ fdr_plot_downscaled_maps <- function(
   if (!is.null(LU)) {
     inputs <- inputs %>% dplyr::filter(lu.to == LU)
   }
+
   if (!is.null(year)) {
     inputs <- inputs %>% dplyr::filter(times == year)
   }
@@ -144,110 +145,81 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  lu_order <- c("cropland",  "newforest","otherland",  "pasture", "forest")
-
+  # -----------------------------
+  # Force LU order
+  # -----------------------------
+  lu_order <- c("cropland", "forest", "newforest", "otherland", "pasture")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
+  # -----------------------------
+  # Present LU only
+  # -----------------------------
+  lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
+
+  # -----------------------------
+  # limits
+  # -----------------------------
   if (is.null(limits)) {
     limits <- range(plot_df$value, na.rm = TRUE)
   }
 
   # -----------------------------
-  # Build plot with ggnewscale
+  # Colors + labels
+  # -----------------------------
+  lu_colors <- list(
+    cropland = "#B8860B",
+    forest = "#006400",
+    newforest = "#90EE90",
+    otherland = "#6A0DAD",
+    pasture = "#B22222"
+  )
+
+  lu_labels <- c(
+    cropland = "Cropland",
+    forest = "Forest",
+    newforest = "New forest",
+    otherland = "Other land",
+    pasture = "Pasture"
+  )
+
+  # -----------------------------
+  # Build plot dynamically
   # -----------------------------
   library(ggnewscale)
 
   p <- ggplot2::ggplot()
 
-  # ---- CROPLAND
-  p <- p +
-    ggplot2::geom_raster(
-      data = dplyr::filter(plot_df, lu.to == "cropland"),
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "#B8860B",
-      limits = limits,
-      name = "Cropland (1000 ha)"
-    )
+  for (i in seq_along(lu_present)) {
 
-  p <- p + ggnewscale::new_scale_fill()
+    lu <- lu_present[i]
 
-  # ---- FOREST
-  p <- p +
-    ggplot2::geom_raster(
-      data = dplyr::filter(plot_df, lu.to == "forest"),
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "#006400",
-      limits = limits,
-      name = "Forest (1000 ha)"
-    )
+    p <- p +
+      ggplot2::geom_raster(
+        data = dplyr::filter(plot_df, lu.to == lu),
+        ggplot2::aes(x = x, y = y, fill = value)
+      ) +
+      ggplot2::scale_fill_gradient(
+        low = "white",
+        high = lu_colors[[lu]],
+        limits = limits,
+        na.value = na_color,
+        name = paste0(lu_labels[[lu]], " (1000 ha)")
+      )
 
-  p <- p + ggnewscale::new_scale_fill()
-
-  # ---- NEW FOREST
-  p <- p +
-    ggplot2::geom_raster(
-      data = dplyr::filter(plot_df, lu.to == "newforest"),
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "#90EE90",
-      limits = limits,
-      name = "New forest (1000 ha)"
-    )
-
-  p <- p + ggnewscale::new_scale_fill()
-
-  # ---- OTHER LAND
-  p <- p +
-    ggplot2::geom_raster(
-      data = dplyr::filter(plot_df, lu.to == "otherland"),
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "#6A0DAD",
-      limits = limits,
-      name = "Other land (1000 ha)"
-    )
-
-  p <- p + ggnewscale::new_scale_fill()
-
-  # ---- PASTURE
-  p <- p +
-    ggplot2::geom_raster(
-      data = dplyr::filter(plot_df, lu.to == "pasture"),
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient(
-      low = "white",
-      high = "#B22222",
-      limits = limits,
-      name = "Pasture (1000 ha)"
-    )
+    if (i < length(lu_present)) {
+      p <- p + ggnewscale::new_scale_fill()
+    }
+  }
 
   # -----------------------------
   # Layout
   # -----------------------------
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
-    theme_fdr_map()+
-    ggplot2::theme(legend.position = "bottom") +
+    theme_fdr_map() +
     ggplot2::facet_grid(
       times ~ lu.to,
-      labeller = ggplot2::labeller(lu.to = c(
-        cropland = "Cropland",
-        forest = "Forest",
-        newforest = "New forest",
-        otherland = "Other land",
-        pasture = "Pasture"
-      ))
+      labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
   # -----------------------------
