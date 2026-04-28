@@ -54,46 +54,49 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # SOFT GRID FRAME
+      # LIGHT GRID BETWEEN PANELS (maps structure)
       # -----------------------
-      panel.grid = ggplot2::element_blank(),
-
-      panel.border = ggplot2::element_rect(
-        fill = NA,
-        color = "grey92",
-        linewidth = 0.4
+      panel.grid.major = ggplot2::element_line(
+        color = "grey95",
+        linewidth = 0.3
       ),
+      panel.grid.minor = ggplot2::element_blank(),
 
-      # spacing between facets
-      panel.spacing = ggplot2::unit(0.6, "lines"),
+      # no heavy frame
+      panel.border = ggplot2::element_blank(),
+
+      # spacing between LU × years
+      panel.spacing = ggplot2::unit(0.8, "lines"),
 
       # -----------------------
-      # Facet strips
+      # FACET STRIPS
       # -----------------------
       strip.background = ggplot2::element_blank(),
 
       strip.text.x = ggplot2::element_text(
         face = "bold",
-        color = "black",
+        color = "#2C3E50",
         size = 11
       ),
 
       strip.text.y = ggplot2::element_text(
         face = "bold",
-        color = "black",
+        color = "#1B4F72",
         size = 11,
         angle = 90
       ),
 
+      strip.placement = "outside",
+
       # -----------------------
-      # Axes (map style)
+      # AXES (clean map style)
       # -----------------------
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
 
       # -----------------------
-      # Legend
+      # LEGEND
       # -----------------------
       legend.position = "bottom",
       legend.title = ggplot2::element_text(size = 10),
