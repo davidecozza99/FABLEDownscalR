@@ -154,7 +154,8 @@ fdr_plot_downscaled_maps <- function(
   # -----------------------------
   # Present LU only
   # -----------------------------
-  lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
+  lu_present <- c("cropland", "pasture", "forest", "newforest", "otherland")
+  lu_present <- lu_present[lu_present %in% unique(as.character(plot_df$lu.to))]
 
   # -----------------------------
   # limits
