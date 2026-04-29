@@ -54,7 +54,7 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # MATRIX GRID (THIS IS THE KEY)
+      # MATRIX GRID
       # -----------------------
       panel.border = ggplot2::element_rect(
         fill = NA,
@@ -88,7 +88,6 @@ theme_fdr_map <- function(base_size = 11) {
       # Map style (clean)
       # -----------------------
       panel.grid = ggplot2::element_blank(),
-
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
@@ -148,13 +147,12 @@ fdr_plot_downscaled_maps <- function(
   # -----------------------------
   # LU order
   # -----------------------------
-  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest")
+  lu_order <- c( "newforest", "otherland", "forest", "pasture","cropland")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
   # -----------------------------
   # Present LU only
   # -----------------------------
-  lu_present <- c("otherland", "forest", "pasture", "cropland", "newforest")
   lu_present <- lu_present[lu_present %in% unique(as.character(plot_df$lu.to))]
 
   # -----------------------------
@@ -204,8 +202,7 @@ fdr_plot_downscaled_maps <- function(
         high = lu_colors[[lu]],
         limits = limits,
         na.value = na_color,
-        name = paste0(lu_labels[[lu]], " (1000 ha)"),
-        guide = ggplot2::guide_colorbar(order = i)
+        name = paste0(lu_labels[[lu]], " (1000 ha)")
       )
 
     if (i < length(lu_present)) {
