@@ -25,7 +25,7 @@ fdr_to_ns_int <- function(df, ns_map) {
 #' Plot downscaled results on an ID raster (facet by time and origins)
 #'
 #' @param out_res results table (typically fdr_run_downscaling()$out.res or $downscaled_LUC)
-#'               must have: ns, lu.to, times, value
+#' must have: ns, lu.to, times, value
 #' @param rasterized_layer SpatRaster with ns_int values (from fdr_build_id_maps())
 #' @param ns_map id_c -> ns_int mapping (from fdr_build_ns_map())
 #' @param limits numeric vector length 2 for consistent color scales across facets
@@ -33,8 +33,6 @@ fdr_to_ns_int <- function(df, ns_map) {
 #' @param na_color fill color for NA pixels
 #' @export
 # -----------------------------------------------------------------------------
-
-
 theme_fdr_map <- function(base_size = 11) {
 
   ggplot2::theme_minimal(base_size = base_size) +
@@ -54,7 +52,7 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # MATRIX GRID
+      # MATRIX GRID (THIS IS THE KEY)
       # -----------------------
       panel.border = ggplot2::element_rect(
         fill = NA,
@@ -62,10 +60,10 @@ theme_fdr_map <- function(base_size = 11) {
         linewidth = 0.4
       ),
 
-      panel.spacing = ggplot2::unit(0, "lines"),  # removes gaps → continuous grid
+      panel.spacing = ggplot2::unit(0, "lines"),
 
       # -----------------------
-      # Facet strips (clean labels)
+      # Facet strips
       # -----------------------
       strip.background = ggplot2::element_blank(),
 
@@ -85,9 +83,10 @@ theme_fdr_map <- function(base_size = 11) {
       strip.placement = "outside",
 
       # -----------------------
-      # Map style (clean)
+      # Map style
       # -----------------------
       panel.grid = ggplot2::element_blank(),
+
       axis.title = ggplot2::element_blank(),
       axis.text = ggplot2::element_blank(),
       axis.ticks = ggplot2::element_blank(),
@@ -116,18 +115,12 @@ fdr_plot_downscaled_maps <- function(
 
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
 
-  # -----------------------------
-  # Convert ids to raster index
-  # -----------------------------
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  # -----------------------------
-  # Aggregate + filter
-  # -----------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
@@ -144,27 +137,15 @@ fdr_plot_downscaled_maps <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  # -----------------------------
-  # LU order
-  # -----------------------------
-  lu_order <- c( "newforest", "otherland", "forest", "pasture","cropland")
+  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
-  # -----------------------------
-  # Present LU only
-  # -----------------------------
-  lu_present <- lu_present[lu_present %in% unique(as.character(plot_df$lu.to))]
+  lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
-  # -----------------------------
-  # limits
-  # -----------------------------
   if (is.null(limits)) {
     limits <- range(plot_df$value, na.rm = TRUE)
   }
 
-  # -----------------------------
-  # Colors + labels
-  # -----------------------------
   lu_colors <- list(
     cropland = "#B8860B",
     forest = "#006400",
@@ -181,9 +162,6 @@ fdr_plot_downscaled_maps <- function(
     pasture = "Pasture"
   )
 
-  # -----------------------------
-  # Build plot dynamically
-  # -----------------------------
   library(ggnewscale)
 
   p <- ggplot2::ggplot()
@@ -210,9 +188,6 @@ fdr_plot_downscaled_maps <- function(
     }
   }
 
-  # -----------------------------
-  # Layout
-  # -----------------------------
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
@@ -221,9 +196,6 @@ fdr_plot_downscaled_maps <- function(
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
-  # -----------------------------
-  # Border
-  # -----------------------------
   if (add_border) {
 
     r <- rasterized_layer
