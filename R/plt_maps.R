@@ -137,7 +137,7 @@ fdr_plot_downscaled_LU <- function(
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture", )
+  lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
