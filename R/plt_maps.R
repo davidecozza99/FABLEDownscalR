@@ -1,4 +1,5 @@
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # fdr_to_ns_int
 #' Convert a results table keyed by id_c into ns_int for raster plotting
 #'
@@ -52,7 +53,7 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # MATRIX GRID
+      # MATRIX GRID (THIS IS THE KEY)
       # -----------------------
       panel.border = ggplot2::element_rect(
         fill = NA,
@@ -122,10 +123,9 @@ fdr_plot_downscaled_maps <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   inputs <- out_int %>%
-    dplyr::filter(lu.from != lu.to) %>%
+    filter(lu.to != lu.from) %>% #filtering out when lu.to is equal to lu.from to just look at land use change
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
-
 
   if (!is.null(LU)) {
     inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
