@@ -1,4 +1,3 @@
-
 # -----------------------------------------------------------------------------
 # fdr_to_ns_int
 #' Convert a results table keyed by id_c into ns_int for raster plotting
@@ -123,29 +122,8 @@ fdr_plot_downscaled_maps <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   inputs <- out_int %>%
-    # filter(lu.to != lu.from) %>%
-    # dplyr::group_by(ns, lu.to, times) %>%
-    # dplyr::summarise(value = sum(value), .groups = "drop")
-
-    dplyr::filter(lu.from != lu.to) %>%
-    # Gains by destination class
-    dplyr::group_by(lu.to, ns, times) %>%
-    dplyr::summarise(gain = sum(value, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::mutate(Type = "gain", lu = lu.to) %>%
-
-    # Bind losses by origin class (negative sign for map interpretation)
-    dplyr::bind_rows(
-      out_int %>%
-        dplyr::filter(lu.from != lu.to) %>%
-        dplyr::group_by(lu.from, ns, times) %>%
-        dplyr::summarise(loss = -sum(value, na.rm = TRUE), .groups = "drop") %>%
-        dplyr::mutate(Type = "loss", lu = lu.from)
-    ) %>%
-
-    # Collapse gains and losses into one signed number per cell and land-use
-    dplyr::group_by(lu, times, ns) %>%
-    dplyr::summarise(value = sum(gain, loss, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::rename(lu.to = lu)
+    dplyr::group_by(ns, lu.to, times) %>%
+    dplyr::summarise(value = sum(value), .groups = "drop")
 
 
   if (!is.null(LU)) {
@@ -166,8 +144,7 @@ fdr_plot_downscaled_maps <- function(
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
   if (is.null(limits)) {
-    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
-    limits <- c(-max_abs, max_abs)
+    limits <- range(plot_df$value, na.rm = TRUE)
   }
 
   lu_colors <- list(
@@ -199,14 +176,12 @@ fdr_plot_downscaled_maps <- function(
         data = dplyr::filter(plot_df, lu.to == lu),
         ggplot2::aes(x = x, y = y, fill = value)
       ) +
-      ggplot2::scale_fill_gradient2(
-        low = "#B22222",          # red = losses
-        mid = "white",            # zero
-        high = lu_colors[[lu]],   # gains
-        midpoint = 0,
+      ggplot2::scale_fill_gradient(
+        low = "white",
+        high = lu_colors[[lu]],
         limits = limits,
         na.value = na_color,
-        name = paste0(lu_labels[[lu]], " net change (1000 ha)")
+        name = paste0(lu_labels[[lu]], " (1000 ha)")
       )
 
     if (i < length(lu_present)) {
