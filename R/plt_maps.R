@@ -122,9 +122,33 @@ fdr_plot_downscaled_maps <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   inputs <- out_int %>%
-    filter(lu.to != lu.from) %>% #filtering out when lu.to is equal to lu.from to just look at land use change
-    dplyr::group_by(ns, lu.to, times) %>%
-    dplyr::summarise(value = sum(value), .groups = "drop")
+    # filter(lu.to != lu.from) %>%
+    # dplyr::group_by(ns, lu.to, times) %>%
+    # dplyr::summarise(value = sum(value), .groups = "drop")
+
+
+  dplyr::filter(lu.from != lu.to) %>%
+    # Gains by destination class
+    dplyr::group_by(lu.to, ns, times) %>%
+    dplyr::summarise(gain = sum(value, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(Type = "gain", lu = lu.to) %>%
+
+    # Bind losses by origin class (negative sign for map interpretation)
+    dplyr::bind_rows(
+      temp %>%
+        dplyr::filter(lu.from != lu.to) %>%
+        dplyr::group_by(lu.from, ns, times) %>%
+        dplyr::summarise(loss = -sum(value, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::mutate(Type = "loss", lu = lu.from)
+    ) %>%
+
+    # Collapse gains and losses into one signed number per cell and land-use
+    dplyr::group_by(lu, times, ns) %>%
+    dplyr::summarise(value = sum(gain, loss, na.rm = TRUE), .groups = "drop")
+
+
+
+
 
   if (!is.null(LU)) {
     inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
