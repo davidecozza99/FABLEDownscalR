@@ -221,7 +221,7 @@ fdr_plot_downscaled_LU <- function(
 
 # LAND USE CHANGE
 
-fdr_plot_downscaled_LU <- function(
+fdr_plot_downscaled_LUC <- function(
     out_res,
     rasterized_layer,
     ns_map,
