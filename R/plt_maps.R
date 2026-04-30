@@ -122,7 +122,7 @@ fdr_plot_downscaled_maps <- function(
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  inputs <- out_res %>%
+  inputs <- out_int %>%
     dplyr::filter(lu.from != lu.to) %>%
     # Gains by destination class
     dplyr::group_by(lu.to, ns, times) %>%
@@ -131,7 +131,7 @@ fdr_plot_downscaled_maps <- function(
 
     # Bind losses by origin class (negative sign for map interpretation)
     dplyr::bind_rows(
-      out_res %>%
+      out_int %>%
         dplyr::filter(lu.from != lu.to) %>%
         dplyr::group_by(lu.from, ns, times) %>%
         dplyr::summarise(loss = -sum(value, na.rm = TRUE), .groups = "drop") %>%
@@ -170,7 +170,7 @@ fdr_plot_downscaled_maps <- function(
     forest = "#006400",
     newforest = "#90EE90",
     otherland = "#6A0DAD",
-    pasture = "#B22222"
+    pasture = "steelblue"
   )
 
   lu_labels <- c(
