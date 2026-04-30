@@ -130,8 +130,8 @@ fdr_plot_downscaled_LU <- function(
   }
 
   if (!is.null(year)) {
-    inputs <- inputs %>% dplyr::filter(times == year)
-  }
+    inputs <- inputs %>% dplyr::filter(times %in% year)
+    }
 
   plot_df <- df_pix %>%
     dplyr::left_join(inputs, by = "ns") %>%
@@ -266,8 +266,8 @@ fdr_plot_downscaled_LUC <- function(
   }
 
   if (!is.null(year)) {
-    inputs <- inputs %>% dplyr::filter(times == year)
-  }
+    inputs <- inputs %>% dplyr::filter(times %in% year)
+    }
 
   plot_df <- df_pix %>%
     dplyr::left_join(inputs, by = "ns") %>%
