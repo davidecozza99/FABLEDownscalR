@@ -221,7 +221,7 @@ fdr_plot_downscaled_LU <- function(
 
 # LAND USE CHANGE
 
-fdr_plot_downscaled_LUC <- function(
+fdr_plot_downscaled_LU <- function(
     out_res,
     rasterized_layer,
     ns_map,
@@ -229,7 +229,7 @@ fdr_plot_downscaled_LUC <- function(
     LU = NULL,
     limits = NULL,
     na_color = "grey90",
-    palette = "RdBu"
+    palette = "viridis"
 ) {
 
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
@@ -240,16 +240,16 @@ fdr_plot_downscaled_LUC <- function(
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-
+  # ----------------------------
+  # ORIGINAL GAIN / LOSS LOGIC (unchanged)
+  # ----------------------------
   inputs <- out_int %>%
     dplyr::filter(lu.from != lu.to) %>%
 
-    # Gains
     dplyr::group_by(lu.to, ns, times) %>%
     dplyr::summarise(gain = sum(value, na.rm = TRUE), .groups = "drop") %>%
     dplyr::mutate(Type = "gain", lu = lu.to) %>%
 
-    # Losses
     dplyr::bind_rows(
       out_int %>%
         dplyr::filter(lu.from != lu.to) %>%
@@ -258,13 +258,11 @@ fdr_plot_downscaled_LUC <- function(
         dplyr::mutate(Type = "loss", lu = lu.from)
     ) %>%
 
-    # Combine back (same logic as your original code)
     dplyr::group_by(lu, times, ns) %>%
     dplyr::summarise(value = sum(gain, loss, na.rm = TRUE), .groups = "drop") %>%
     dplyr::rename(lu.to = lu)
 
-
-  # optional filters
+  # filters
   if (!is.null(LU)) {
     inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
   }
@@ -273,24 +271,22 @@ fdr_plot_downscaled_LUC <- function(
     inputs <- inputs %>% dplyr::filter(times == year)
   }
 
-
-  # join raster grid
+  # join raster
   plot_df <- df_pix %>%
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-
-  # LU ordering (unchanged)
+  # factor order (for facets only)
   lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
-
-  # global limits (still single scale!)
+  # ----------------------------
+  # SINGLE GLOBAL SCALE
+  # ----------------------------
   if (is.null(limits)) {
     max_abs <- max(abs(plot_df$value), na.rm = TRUE)
     limits <- c(-max_abs, max_abs)
   }
-
 
   lu_labels <- c(
     cropland = "Cropland",
@@ -300,15 +296,17 @@ fdr_plot_downscaled_LUC <- function(
     pasture = "Pasture"
   )
 
-
+  # ----------------------------
+  # SINGLE PLOT (NO LOOP, NO GGNEWSCALE)
+  # ----------------------------
   ggplot2::ggplot(plot_df) +
 
     ggplot2::geom_raster(
       ggplot2::aes(x = x, y = y, fill = value)
     ) +
 
-    ggplot2::scale_fill_distiller(
-      palette = palette,
+    ggplot2::scale_fill_viridis_c(
+      option = palette,
       limits = limits,
       na.value = na_color
     ) +
@@ -317,5 +315,8 @@ fdr_plot_downscaled_LUC <- function(
 
     theme_fdr_map() +
 
-    ggplot2::facet_grid(times ~ lu.to, labeller = ggplot2::labeller(lu.to = lu_labels))
+    ggplot2::facet_grid(
+      times ~ lu.to,
+      labeller = ggplot2::labeller(lu.to = lu_labels)
+    )
 }
