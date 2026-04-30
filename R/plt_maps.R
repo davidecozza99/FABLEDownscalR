@@ -100,7 +100,7 @@ theme_fdr_map <- function(base_size = 11) {
     )
 }
 
-
+# LAND USE
 
 fdr_plot_downscaled_LU <- function(
     out_res,
@@ -214,4 +214,108 @@ fdr_plot_downscaled_LU <- function(
   }
 
   return(p)
+}
+
+
+
+
+# LAND USE CHANGE
+
+fdr_plot_downscaled_LUC <- function(
+    out_res,
+    rasterized_layer,
+    ns_map,
+    year = NULL,
+    LU = NULL,
+    limits = NULL,
+    na_color = "grey90",
+    palette = "RdBu"
+) {
+
+  chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
+
+  out_int <- fdr_to_ns_int(out_res, ns_map)
+
+  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
+  names(df_pix)[3] <- "ns"
+  df_pix <- dplyr::filter(df_pix, !is.na(ns))
+
+
+  inputs <- out_int %>%
+    dplyr::filter(lu.from != lu.to) %>%
+
+    # Gains
+    dplyr::group_by(lu.to, ns, times) %>%
+    dplyr::summarise(gain = sum(value, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(Type = "gain", lu = lu.to) %>%
+
+    # Losses
+    dplyr::bind_rows(
+      out_int %>%
+        dplyr::filter(lu.from != lu.to) %>%
+        dplyr::group_by(lu.from, ns, times) %>%
+        dplyr::summarise(loss = -sum(value, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::mutate(Type = "loss", lu = lu.from)
+    ) %>%
+
+    # Combine back (same logic as your original code)
+    dplyr::group_by(lu, times, ns) %>%
+    dplyr::summarise(value = sum(gain, loss, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::rename(lu.to = lu)
+
+
+  # optional filters
+  if (!is.null(LU)) {
+    inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
+  }
+
+  if (!is.null(year)) {
+    inputs <- inputs %>% dplyr::filter(times == year)
+  }
+
+
+  # join raster grid
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs, by = "ns") %>%
+    dplyr::filter(!is.na(lu.to), !is.na(times))
+
+
+  # LU ordering (unchanged)
+  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest")
+  plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
+
+
+  # global limits (still single scale!)
+  if (is.null(limits)) {
+    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
+    limits <- c(-max_abs, max_abs)
+  }
+
+
+  lu_labels <- c(
+    cropland = "Cropland",
+    forest = "Forest",
+    newforest = "New forest",
+    otherland = "Other land",
+    pasture = "Pasture"
+  )
+
+
+  ggplot2::ggplot(plot_df) +
+
+    ggplot2::geom_raster(
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
+
+    ggplot2::scale_fill_distiller(
+      palette = palette,
+      limits = limits,
+      na.value = na_color
+    ) +
+
+    ggplot2::coord_equal(expand = FALSE) +
+
+    theme_fdr_map() +
+
+    ggplot2::facet_grid(times ~ lu.to, labeller = ggplot2::labeller(lu.to = lu_labels))
 }
