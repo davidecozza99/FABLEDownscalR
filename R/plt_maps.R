@@ -52,7 +52,7 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # MATRIX GRID (THIS IS THE KEY)
+      # MATRIX GRID
       # -----------------------
       panel.border = ggplot2::element_rect(
         fill = NA,
@@ -122,8 +122,22 @@ fdr_plot_downscaled_maps <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   inputs <- out_int %>%
-    dplyr::group_by(ns, lu.to, times) %>%
-    dplyr::summarise(value = sum(value), .groups = "drop")
+    dplyr::filter(lu.from != lu.to) %>%
+    dplyr::group_by(lu.to, ns, times) %>%
+    dplyr::summarise(gain = sum(value, na.rm = TRUE), .groups = "drop") %>%
+
+    # Bind losses by origin class (negative sign for map interpretation)
+    dplyr::bind_rows(
+      out_int %>%
+        dplyr::filter(lu.from != lu.to) %>%
+        dplyr::group_by(lu.from, ns, times) %>%
+        dplyr::summarise(loss = -sum(value, na.rm = TRUE), .groups = "drop")
+    ) %>%
+
+    # Collapse gains and losses into one signed number per cell and land-use
+    dplyr::group_by(lu, times, ns) %>%
+    dplyr::summarise(value = sum(gain, loss, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::rename(lu.to = lu)
 
 
   if (!is.null(LU)) {
