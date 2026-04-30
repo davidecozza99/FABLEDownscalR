@@ -162,7 +162,8 @@ fdr_plot_downscaled_maps <- function(
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
   if (is.null(limits)) {
-    limits <- range(plot_df$value, na.rm = TRUE)
+    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
+    limits <- c(-max_abs, max_abs)
   }
 
   lu_colors <- list(
@@ -194,12 +195,14 @@ fdr_plot_downscaled_maps <- function(
         data = dplyr::filter(plot_df, lu.to == lu),
         ggplot2::aes(x = x, y = y, fill = value)
       ) +
-      ggplot2::scale_fill_gradient(
-        low = "white",
-        high = lu_colors[[lu]],
+      ggplot2::scale_fill_gradient2(
+        low = "#B22222",          # red = losses
+        mid = "white",            # zero
+        high = lu_colors[[lu]],   # gains
+        midpoint = 0,
         limits = limits,
         na.value = na_color,
-        name = paste0(lu_labels[[lu]], " (1000 ha)")
+        name = paste0(lu_labels[[lu]], "net change (1000 ha)")
       )
 
     if (i < length(lu_present)) {
