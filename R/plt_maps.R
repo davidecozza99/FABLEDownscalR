@@ -293,7 +293,8 @@ fdr_plot_downscaled_LUC <- function(
     forest = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture"
+    pasture = "Pasture",
+    urban = "Urban"
   )
 
   # ----------------------------
@@ -305,8 +306,11 @@ fdr_plot_downscaled_LUC <- function(
       ggplot2::aes(x = x, y = y, fill = value)
     ) +
 
-    ggplot2::scale_fill_viridis_c(
-      option = palette,
+    ggplot2::scale_fill_gradient2(
+      low = "red",
+      mid = "white",
+      high = "green",
+      midpoint = 0,
       limits = limits,
       na.value = na_color
     ) +
