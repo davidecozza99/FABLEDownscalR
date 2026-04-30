@@ -1,5 +1,4 @@
 # -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
 # fdr_to_ns_int
 #' Convert a results table keyed by id_c into ns_int for raster plotting
 #'
@@ -53,7 +52,7 @@ theme_fdr_map <- function(base_size = 11) {
       ),
 
       # -----------------------
-      # MATRIX GRID (THIS IS THE KEY)
+      # MATRIX GRID
       # -----------------------
       panel.border = ggplot2::element_rect(
         fill = NA,
@@ -126,7 +125,6 @@ fdr_plot_downscaled_maps <- function(
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
-
   if (!is.null(LU)) {
     inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
   }
@@ -145,8 +143,7 @@ fdr_plot_downscaled_maps <- function(
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
   if (is.null(limits)) {
-    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
-    limits <- c(-max_abs, max_abs)
+    limits <- range(plot_df$value, na.rm = TRUE)
   }
 
   lu_colors <- list(
@@ -154,7 +151,7 @@ fdr_plot_downscaled_maps <- function(
     forest = "#006400",
     newforest = "#90EE90",
     otherland = "#6A0DAD",
-    pasture = "steelblue"
+    pasture = "#B22222"
   )
 
   lu_labels <- c(
@@ -178,14 +175,12 @@ fdr_plot_downscaled_maps <- function(
         data = dplyr::filter(plot_df, lu.to == lu),
         ggplot2::aes(x = x, y = y, fill = value)
       ) +
-      ggplot2::scale_fill_gradient2(
-        low = "#B22222",          # red = losses
-        mid = "white",            # zero
-        high = lu_colors[[lu]],   # gains
-        midpoint = 0,
+      ggplot2::scale_fill_gradient(
+        low = "white",
+        high = lu_colors[[lu]],
         limits = limits,
         na.value = na_color,
-        name = paste0(lu_labels[[lu]], "net change (1000 ha)")
+        name = paste0(lu_labels[[lu]], " (1000 ha)")
       )
 
     if (i < length(lu_present)) {
