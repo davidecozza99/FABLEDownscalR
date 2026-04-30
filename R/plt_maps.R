@@ -102,7 +102,7 @@ theme_fdr_map <- function(base_size = 11) {
 
 
 
-fdr_plot_downscaled_maps <- function(
+fdr_plot_downscaled_LU <- function(
     out_res,
     rasterized_layer,
     ns_map,
