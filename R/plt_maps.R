@@ -122,6 +122,7 @@ fdr_plot_downscaled_maps <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   inputs <- out_int %>%
+    filter(lu.to != lu.from) %>% #filtering out when lu.to is equal to lu.from to just look at land use change
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
