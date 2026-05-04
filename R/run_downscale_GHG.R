@@ -415,7 +415,8 @@ fdr_run_downscaling_GHG <- function(
   # ---------------------------------------------------------------------------
   # 5) Computing GHG due to Land use change by ecoregion
   # ---------------------------------------------------------------------------
-
+  library(readxl)
+  library(readr)
   EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv")
 
   results$out.res <- results$out.res %>%
