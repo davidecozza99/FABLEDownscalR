@@ -124,7 +124,7 @@ fdr_plot_downscaled_LU <- function(
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
   # -----------------------------------
-  # Aggregate
+  # Aggregate transitions
   # -----------------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
@@ -139,52 +139,46 @@ fdr_plot_downscaled_LU <- function(
   }
 
   # -----------------------------------
-  # Dominant + second class (SAFE)
+  # Dominant + second class
   # -----------------------------------
   inputs_dom <- inputs %>%
     dplyr::group_by(ns, times) %>%
     dplyr::arrange(dplyr::desc(value), .by_group = TRUE) %>%
     dplyr::summarise(
       top1 = lu.to[1],
-      top2 = ifelse(dplyr::n() > 1, lu.to[2], NA_character_),
       value1 = value[1],
       value2 = ifelse(dplyr::n() > 1, value[2], 0),
+      top2 = ifelse(dplyr::n() > 1, lu.to[2], NA_character_),
       dominance = (value[1] - ifelse(dplyr::n() > 1, value[2], 0)) /
         (value[1] + ifelse(dplyr::n() > 1, value[2], 0)),
       .groups = "drop"
     )
 
   # -----------------------------------
-  # Mixed class + pattern
+  # UNCERTAINTY ONLY (NOT A CLASS)
   # -----------------------------------
   inputs_dom <- inputs_dom %>%
     dplyr::mutate(
-      lu.class = dplyr::case_when(
-        dominance < 0.3 & !is.na(top2) ~ "mixed",
-        TRUE ~ top1
-      ),
-      pattern = dplyr::case_when(
-        lu.class == "mixed" ~ "stripe",
-        TRUE ~ "none"
-      )
+      is_mixed = dominance < 0.3 & !is.na(top2),
+      pattern = ifelse(is_mixed, "stripe", "none"),
+      lu.class = top1
     )
 
   # -----------------------------------
-  # Order
+  # Order (ONLY real land-use classes)
   # -----------------------------------
-  lu_order <- c("cropland", "forest", "pasture", "otherland", "urban", "mixed")
+  lu_order <- c("cropland", "forest", "pasture", "otherland", "urban")
   inputs_dom$lu.class <- factor(inputs_dom$lu.class, levels = lu_order)
 
   # -----------------------------------
-  # Colors
+  # Colors (ONLY real classes)
   # -----------------------------------
   lu_colors <- c(
     cropland = "#B8860B",
     forest = "#006400",
     pasture = "#B22222",
     otherland = "#6A0DAD",
-    urban = "#808080",
-    mixed = "#D9D9D9"
+    urban = "#808080"
   )
 
   lu_labels <- c(
@@ -192,8 +186,7 @@ fdr_plot_downscaled_LU <- function(
     forest = "Forest",
     pasture = "Pasture",
     otherland = "Other land",
-    urban = "Urban",
-    mixed = "Mixed (low dominance)"
+    urban = "Urban"
   )
 
   # -----------------------------------
@@ -225,17 +218,6 @@ fdr_plot_downscaled_LU <- function(
       values = lu_colors,
       labels = lu_labels,
       name = "Land use class"
-    ) +
-    ggpattern::scale_pattern_manual(
-      values = c(
-        cropland = "none",
-        forest = "none",
-        pasture = "none",
-        otherland = "none",
-        urban = "none",
-        mixed = "stripe"
-      ),
-      guide = "none"
     ) +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
