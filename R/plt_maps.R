@@ -102,150 +102,113 @@ theme_fdr_map <- function(base_size = 11) {
 
 # LAND USE
 
+library(ggpattern)
+
 fdr_plot_downscaled_LU <- function(
     out_res,
     rasterized_layer,
     ns_map,
     year = NULL,
     LU = NULL,
+    dominance_threshold = 0.3,
     na_color = "grey90",
     add_border = TRUE
 ) {
 
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
-
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
-  # -----------------------------------
-  # Raster base
-  # -----------------------------------
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  # -----------------------------------
-  # Aggregate transitions
-  # -----------------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
-  if (!is.null(LU)) {
-    inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
-  }
+  if (!is.null(LU)) inputs <- dplyr::filter(inputs, lu.to %in% LU)
+  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
 
-  if (!is.null(year)) {
-    inputs <- inputs %>% dplyr::filter(times %in% year)
-  }
-
-  # -----------------------------------
-  # Dominant + second class
-  # -----------------------------------
   inputs_dom <- inputs %>%
     dplyr::group_by(ns, times) %>%
     dplyr::arrange(dplyr::desc(value), .by_group = TRUE) %>%
     dplyr::summarise(
-      top1 = lu.to[1],
-      value1 = value[1],
-      value2 = ifelse(dplyr::n() > 1, value[2], 0),
-      top2 = ifelse(dplyr::n() > 1, lu.to[2], NA_character_),
-      dominance = (value[1] - ifelse(dplyr::n() > 1, value[2], 0)) /
-        (value[1] + ifelse(dplyr::n() > 1, value[2], 0)),
-      .groups = "drop"
-    )
-
-  # -----------------------------------
-  # UNCERTAINTY ONLY (NOT A CLASS)
-  # -----------------------------------
-  inputs_dom <- inputs_dom %>%
+      top1     = lu.to[1],
+      top2     = ifelse(dplyr::n() > 1, lu.to[2], NA_character_),
+      value1   = value[1],
+      value2   = ifelse(dplyr::n() > 1, value[2], 0),
+      dominance = (value1 - value2) / (value1 + value2),
+      .groups  = "drop"
+    ) %>%
     dplyr::mutate(
-      is_mixed = dominance < 0.3 & !is.na(top2),
-      pattern = ifelse(is_mixed, "stripe", "none"),
-      lu.class = top1
+      has_secondary = dominance < dominance_threshold & !is.na(top2)
     )
 
-  # -----------------------------------
-  # Order (ONLY real land-use classes)
-  # -----------------------------------
-  lu_order <- c("cropland", "forest", "pasture", "otherland", "urban")
-  inputs_dom$lu.class <- factor(inputs_dom$lu.class, levels = lu_order)
-
-  # -----------------------------------
-  # Colors (ONLY real classes)
-  # -----------------------------------
-  lu_colors <- c(
-    cropland = "#B8860B",
-    forest = "#006400",
-    pasture = "#B22222",
-    otherland = "#6A0DAD",
-    urban = "#808080"
-  )
-
-  lu_labels <- c(
-    cropland = "Cropland",
-    forest = "Forest",
-    pasture = "Pasture",
-    otherland = "Other land",
-    urban = "Urban"
-  )
-
-  # -----------------------------------
-  # Merge
-  # -----------------------------------
   plot_df <- df_pix %>%
     dplyr::left_join(inputs_dom, by = "ns") %>%
-    dplyr::filter(!is.na(lu.class), !is.na(times))
+    dplyr::filter(!is.na(top1), !is.na(times))
 
-  # -----------------------------------
-  # Plot
-  # -----------------------------------
-  library(ggpattern)
+  lu_colors <- c(
+    cropland  = "#B8860B",
+    forest    = "#006400",
+    pasture   = "#B22222",
+    otherland = "#6A0DAD",
+    urban     = "#808080"
+  )
 
+  # ----------------------------
+  # Base layer: dominant LU
+  # ----------------------------
   p <- ggplot2::ggplot(plot_df) +
-    ggpattern::geom_tile_pattern(
-      ggplot2::aes(
-        x = x,
-        y = y,
-        fill = lu.class,
-        pattern = pattern
-      ),
-      pattern_fill = "black",
-      pattern_color = NA,
-      pattern_density = 0.35,
-      pattern_spacing = 0.02
+    ggplot2::geom_raster(
+      ggplot2::aes(x = x, y = y, fill = top1)
     ) +
     ggplot2::scale_fill_manual(
       values = lu_colors,
-      labels = lu_labels,
-      name = "Land use class"
-    ) +
+      name   = "Dominant land use"
+    )
+
+  # ----------------------------
+  # Stripe layer: secondary LU color as diagonal hatching
+  # ----------------------------
+  secondary_df <- dplyr::filter(plot_df, has_secondary)
+
+  if (nrow(secondary_df) > 0) {
+    p <- p +
+      ggpattern::geom_tile_pattern(
+        data = secondary_df,
+        ggplot2::aes(
+          x               = x,
+          y               = y,
+          pattern_fill    = top2   # stripe color = secondary LU color
+        ),
+        fill             = NA,      # transparent base (dominant already drawn)
+        pattern          = "stripe",
+        pattern_angle    = 45,
+        pattern_density  = 0.3,     # how much of cell is stripe vs gap
+        pattern_spacing  = 0.05,    # spacing between stripes (relative)
+        pattern_color    = NA,      # no outline on stripes
+        color            = NA       # no tile border
+      ) +
+      ggpattern::scale_pattern_fill_manual(
+        values = lu_colors,
+        name   = "Secondary land use"
+      )
+  }
+
+  # ----------------------------
+  # Final assembly
+  # ----------------------------
+  p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
-    ggplot2::facet_grid(
-      times ~ .,
-      labeller = ggplot2::label_value
-    )
+    ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
 
-  # -----------------------------------
-  # Border
-  # -----------------------------------
   if (add_border) {
-
-    r <- terra::app(
-      rasterized_layer,
-      fun = function(x) ifelse(is.na(x), NA, 1)
-    )
-
-    country_border <- terra::as.polygons(r, dissolve = TRUE)
-    country_border <- sf::st_as_sf(country_border)
-
+    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
     p <- p +
-      ggplot2::geom_sf(
-        data = country_border,
-        fill = NA,
-        color = "black",
-        linewidth = 0.5
-      )
+      ggplot2::geom_sf(data = border, fill = NA, color = "black", linewidth = 0.5)
   }
 
   return(p)
