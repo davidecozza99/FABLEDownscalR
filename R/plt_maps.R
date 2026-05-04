@@ -100,19 +100,19 @@ theme_fdr_map <- function(base_size = 11) {
     )
 }
 
-# LAND USE
+# LAND USE (one aggregated map)
 
 library(ggpattern)
 
-fdr_plot_downscaled_LU <- function(
+fdr_plot_downscaled_LU_one <- function(
     out_res,
     rasterized_layer,
     ns_map,
-    year              = NULL,
-    LU                = NULL,
+    year                = NULL,
+    LU                  = NULL,
     dominance_threshold = 0.3,
-    na_color          = "grey90",
-    add_border        = TRUE
+    na_color            = "grey90",
+    add_border          = TRUE
 ) {
 
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
@@ -187,21 +187,24 @@ fdr_plot_downscaled_LU <- function(
     )
 
   # ----------------------------
-  # Stripe layer: white diagonal hatching on mixed cells
+  # Stripe layer: secondary LU color, thick + dense
   # ----------------------------
   if (nrow(secondary_df) > 0) {
     p <- p +
       ggpattern::geom_tile_pattern(
-        data            = secondary_df,
-        ggplot2::aes(x = x, y = y),
+        data = secondary_df,
+        ggplot2::aes(x = x, y = y, pattern_fill = top2),
         fill            = NA,
         pattern         = "stripe",
         pattern_angle   = 45,
-        pattern_density = 0.4,
-        pattern_spacing = 0.04,
-        pattern_fill    = "white",
+        pattern_density = 0.5,
+        pattern_spacing = 0.03,
         pattern_color   = NA,
         color           = NA
+      ) +
+      ggpattern::scale_pattern_fill_manual(
+        values = lu_colors,
+        guide  = "none"
       )
   }
 
@@ -233,7 +236,125 @@ fdr_plot_downscaled_LU <- function(
 }
 
 
-# LAND USE CHANGE
+
+# LAND USE (multiple maps)
+
+fdr_plot_downscaled_LU <- function(
+    out_res,
+    rasterized_layer,
+    ns_map,
+    year = NULL,
+    LU = NULL,
+    limits = NULL,
+    na_color = "grey90",
+    add_border = TRUE
+) {
+
+  chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
+
+  out_int <- fdr_to_ns_int(out_res, ns_map)
+
+  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
+  names(df_pix)[3] <- "ns"
+  df_pix <- dplyr::filter(df_pix, !is.na(ns))
+
+  inputs <- out_int %>%
+    dplyr::group_by(ns, lu.to, times) %>%
+    dplyr::summarise(value = sum(value), .groups = "drop")
+
+  if (!is.null(LU)) {
+    inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
+  }
+
+  if (!is.null(year)) {
+
+  inputs <- inputs %>% dplyr::filter(times %in% year)
+  }
+
+plot_df <- df_pix %>%
+  dplyr::left_join(inputs, by = "ns") %>%
+
+
+
+
+if (!is.null(year)) {
+
+ inputs <- inputs %>% dplyr::filter(times %in% year)
+ }
+
+plot_df <- df_pix %>%
+  dplyr::left_join(inputs, by = "ns") %>%
+  dplyr::filter(!is.na(lu.to), !is.na(times))
+
+lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest", "urban")
+plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
+
+lu_labels <- c(
+  cropland = "Cropland",
+  forest = "Forest",
+  newforest = "New forest",
+  otherland = "Other land",
+  pasture = "Pasture",
+  urban = "Urban"
+)
+
+# ----------------------------
+# GLOBAL LIMITS
+# ----------------------------
+if (is.null(limits)) {
+  max_abs <- max(abs(plot_df$value), na.rm = TRUE)
+  limits <- c(-max_abs, max_abs)
+}
+
+# ----------------------------
+# PLOT
+# ----------------------------
+p <- ggplot2::ggplot(plot_df) +
+  ggplot2::geom_raster(
+    ggplot2::aes(x = x, y = y, fill = value)
+  ) +
+  ggplot2::scale_fill_gradient2(
+    low = "#b2182b",      # dark red
+    mid = "white",
+    high = "#1a7f37",     # dark green
+    midpoint = 0,
+    limits = limits,
+    na.value = na_color,
+    name = "1000 ha"
+  ) +
+  ggplot2::coord_equal(expand = FALSE) +
+  theme_fdr_map() +
+  ggplot2::facet_grid(
+    times ~ lu.to,
+    labeller = ggplot2::labeller(lu.to = lu_labels)
+  )
+
+# ----------------------------
+# BORDER (same logic as your LU function)
+# ----------------------------
+if (add_border) {
+
+  r <- rasterized_layer
+  r[!is.na(r)] <- 1
+
+  country_border <- terra::as.polygons(r, dissolve = TRUE)
+  country_border <- sf::st_as_sf(country_border)
+
+  p <- p +
+    ggplot2::geom_sf(
+      data = country_border,
+      fill = NA,
+      color = "black",
+      linewidth = 0.5
+    )
+}
+
+return(p)
+}
+
+
+
+# LAND USE CHANGE (multiple maps)
 
 fdr_plot_downscaled_LUC <- function(
     out_res,
