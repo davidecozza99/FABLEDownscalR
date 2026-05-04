@@ -102,150 +102,33 @@ theme_fdr_map <- function(base_size = 11) {
 
 # LAND USE (one aggregated map)
 
-library(ggpattern)
+}
 
-fdr_plot_downscaled_LU_one <- function(
-    out_res,
-    rasterized_layer,
-    ns_map,
-    year                = NULL,
-    LU                  = NULL,
-    dominance_threshold = 0.3,
-    na_color            = "grey90",
-    add_border          = TRUE
-) {
+# ----------------------------
+# Final assembly
+# ----------------------------
+p <- p +
+  ggplot2::coord_equal(expand = FALSE) +
+  theme_fdr_map() +
+  ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
 
-  chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
+# ----------------------------
+# Border
+# ----------------------------
+if (add_border) {
+  r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+  border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
 
-  out_int <- fdr_to_ns_int(out_res, ns_map)
-
-  # ----------------------------
-  # Raster base
-  # ----------------------------
-  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
-  names(df_pix)[3] <- "ns"
-  df_pix <- dplyr::filter(df_pix, !is.na(ns))
-
-  # ----------------------------
-  # Aggregate
-  # ----------------------------
-  inputs <- out_int %>%
-    dplyr::group_by(ns, lu.to, times) %>%
-    dplyr::summarise(value = sum(value), .groups = "drop")
-
-  if (!is.null(LU))   inputs <- dplyr::filter(inputs, lu.to %in% LU)
-  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
-
-  # ----------------------------
-  # Dominant + secondary LU
-  # ----------------------------
-  inputs_dom <- inputs %>%
-    dplyr::group_by(ns, times) %>%
-    dplyr::arrange(dplyr::desc(value), .by_group = TRUE) %>%
-    dplyr::summarise(
-      top1      = lu.to[1],
-      top2      = ifelse(dplyr::n() > 1, lu.to[2], NA_character_),
-      value1    = value[1],
-      value2    = ifelse(dplyr::n() > 1, value[2], 0),
-      dominance = (value1 - value2) / (value1 + value2),
-      .groups   = "drop"
-    ) %>%
-    dplyr::mutate(
-      has_secondary = dominance < dominance_threshold & !is.na(top2)
-    )
-
-  # ----------------------------
-  # Merge with raster grid
-  # ----------------------------
-  plot_df <- df_pix %>%
-    dplyr::left_join(inputs_dom, by = "ns") %>%
-    dplyr::filter(!is.na(top1), !is.na(times))
-
-  secondary_df <- dplyr::filter(plot_df, has_secondary)
-
-  # ----------------------------
-  # Colors
-  # ----------------------------
-  lu_colors <- list(
-    cropland = "#B8860B",
-    forest = "#006400",
-    newforest = "#90EE90",
-    otherland = "#6A0DAD",
-    pasture = "#B22222",
-    urban     = "grey50"
-    )
-
-  lu_labels <- c(
-    cropland  = "Cropland",
-    forest    = "Forest",
-    newforest = "New forest",
-    otherland = "Other land",
-    pasture   = "Pasture",
-    urban     = "Urban"
-  )
-
-  # ----------------------------
-  # Base layer: dominant LU
-  # ----------------------------
-  p <- ggplot2::ggplot(plot_df) +
-    ggplot2::geom_raster(
-      ggplot2::aes(x = x, y = y, fill = top1)
-    ) +
-    ggplot2::scale_fill_manual(
-      values = unlist(lu_colors),
-      breaks = names(lu_colors),
-      labels = lu_labels[names(lu_colors)],
-      name   = "Dominant land use"
-    )
-
-
-  # ----------------------------
-  # Stripe layer: secondary LU color, thick + dense
-  # ----------------------------
-  if (nrow(secondary_df) > 0) {
-    p <- p +
-      ggpattern::geom_tile_pattern(
-        data = secondary_df,
-        ggplot2::aes(x = x, y = y, pattern_fill = top2),
-        fill            = NA,
-        pattern         = "stripe",
-        pattern_angle   = 45,
-        pattern_density = 0.5,
-        pattern_spacing = 0.03,
-        pattern_color   = NA,
-        color           = NA
-      ) +
-      ggpattern::scale_pattern_fill_manual(
-        values = lu_colors,
-        guide  = "none"
-      )
-  }
-
-  # ----------------------------
-  # Final assembly
-  # ----------------------------
   p <- p +
-    ggplot2::coord_equal(expand = FALSE) +
-    theme_fdr_map() +
-    ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
+    ggplot2::geom_sf(
+      data      = border,
+      fill      = NA,
+      color     = "black",
+      linewidth = 0.5
+    )
+}
 
-  # ----------------------------
-  # Border
-  # ----------------------------
-  if (add_border) {
-    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
-
-    p <- p +
-      ggplot2::geom_sf(
-        data      = border,
-        fill      = NA,
-        color     = "black",
-        linewidth = 0.5
-      )
-  }
-
-  return(p)
+return(p)
 }
 
 
@@ -302,7 +185,8 @@ fdr_plot_downscaled_LU <- function(
     forest = "#006400",
     newforest = "#90EE90",
     otherland = "#6A0DAD",
-    pasture = "#B22222"
+    pasture = "#B22222",
+    urban='grey50'
   )
 
   lu_labels <- c(
@@ -310,7 +194,8 @@ fdr_plot_downscaled_LU <- function(
     forest = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture"
+    pasture = "Pasture",
+    urban= "Urban"
   )
 
   library(ggnewscale)
