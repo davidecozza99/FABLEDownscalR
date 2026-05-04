@@ -102,7 +102,7 @@ theme_fdr_map <- function(base_size = 11) {
 
 # LAND USE (one aggregated map)
 
-}
+
 
 # ----------------------------
 # Final assembly
