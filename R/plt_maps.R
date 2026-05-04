@@ -117,10 +117,16 @@ fdr_plot_downscaled_LU <- function(
 
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
+  # -----------------------------------
+  # Raster base (pixel grid)
+  # -----------------------------------
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
+  # -----------------------------------
+  # Aggregate transitions
+  # -----------------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
@@ -131,71 +137,86 @@ fdr_plot_downscaled_LU <- function(
 
   if (!is.null(year)) {
     inputs <- inputs %>% dplyr::filter(times %in% year)
-    }
-
-  plot_df <- df_pix %>%
-    dplyr::left_join(inputs, by = "ns") %>%
-    dplyr::filter(!is.na(lu.to), !is.na(times))
-
-  lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture", "urban")
-  plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
-
-  lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
-
-  if (is.null(limits)) {
-    limits <- range(plot_df$value, na.rm = TRUE)
   }
 
-  lu_colors <- list(
-    cropland = "#B8860B",
-    forest = "#006400",
-    newforest = "#90EE90",
-    otherland = "#6A0DAD",
-    pasture = "#B22222"
-  )
+  # -----------------------------------
+  # Compute dominant land use + dominance
+  # -----------------------------------
+  inputs_dom <- inputs %>%
+    dplyr::group_by(ns, times) %>%
+    dplyr::arrange(dplyr::desc(value), .by_group = TRUE) %>%
+    dplyr::mutate(rank = dplyr::row_number()) %>%
+    dplyr::filter(rank <= 2) %>%
+    dplyr::summarise(
+      lu.to = first(lu.to),
+      value1 = first(value),
+      value2 = dplyr::nth(value, 2),
+      dominance = value1 - value2,
+      .groups = "drop"
+    )
+
+  # -----------------------------------
+  # Merge with pixel grid
+  # -----------------------------------
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs_dom, by = "ns") %>%
+    dplyr::filter(!is.na(lu.to), !is.na(times))
+
+  # -----------------------------------
+  # Order and labels
+  # -----------------------------------
+  lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture", "urban")
+  plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
   lu_labels <- c(
     cropland = "Cropland",
     forest = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture"
+    pasture = "Pasture",
+    urban = "Urban"
   )
 
-  library(ggnewscale)
+  lu_colors <- c(
+    cropland = "#B8860B",
+    forest = "#006400",
+    newforest = "#90EE90",
+    otherland = "#6A0DAD",
+    pasture = "#B22222",
+    urban = "#808080"
+  )
 
-  p <- ggplot2::ggplot()
-
-  for (i in seq_along(lu_present)) {
-
-    lu <- lu_present[i]
-
-    p <- p +
-      ggplot2::geom_raster(
-        data = dplyr::filter(plot_df, lu.to == lu),
-        ggplot2::aes(x = x, y = y, fill = value)
-      ) +
-      ggplot2::scale_fill_gradient(
-        low = "white",
-        high = lu_colors[[lu]],
-        limits = limits,
-        na.value = na_color,
-        name = paste0(lu_labels[[lu]], " (1000 ha)")
-      )
-
-    if (i < length(lu_present)) {
-      p <- p + ggnewscale::new_scale_fill()
-    }
+  # -----------------------------------
+  # Limits (optional)
+  # -----------------------------------
+  if (is.null(limits)) {
+    limits <- range(plot_df$dominance, na.rm = TRUE)
   }
 
-  p <- p +
+  # -----------------------------------
+  # Plot
+  # -----------------------------------
+  p <- ggplot2::ggplot(plot_df) +
+    ggplot2::geom_raster(
+      ggplot2::aes(
+        x = x,
+        y = y,
+        fill = lu.to,
+        alpha = dominance
+      )
+    ) +
+    ggplot2::scale_fill_manual(values = lu_colors, labels = lu_labels) +
+    ggplot2::scale_alpha(range = c(0.3, 1), guide = "none") +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
-      times ~ lu.to,
-      labeller = ggplot2::labeller(lu.to = lu_labels)
+      times ~ .,
+      labeller = ggplot2::labeller(times = label_value)
     )
 
+  # -----------------------------------
+  # Border
+  # -----------------------------------
   if (add_border) {
 
     r <- rasterized_layer
