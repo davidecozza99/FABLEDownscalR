@@ -254,10 +254,16 @@ fdr_plot_downscaled_LU <- function(
 
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
+  # ----------------------------
+  # Raster base
+  # ----------------------------
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
+  # ----------------------------
+  # Aggregate transitions
+  # ----------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
@@ -267,89 +273,84 @@ fdr_plot_downscaled_LU <- function(
   }
 
   if (!is.null(year)) {
-
-  inputs <- inputs %>% dplyr::filter(times %in% year)
+    inputs <- inputs %>% dplyr::filter(times %in% year)
   }
 
-plot_df <- df_pix %>%
-  dplyr::left_join(inputs, by = "ns") %>%
+  # ----------------------------
+  # Merge
+  # ----------------------------
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs, by = "ns") %>%
+    dplyr::filter(!is.na(lu.to), !is.na(times))
 
+  # ----------------------------
+  # Order + labels
+  # ----------------------------
+  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest", "urban")
 
+  plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
 
-
-if (!is.null(year)) {
-
- inputs <- inputs %>% dplyr::filter(times %in% year)
- }
-
-plot_df <- df_pix %>%
-  dplyr::left_join(inputs, by = "ns") %>%
-  dplyr::filter(!is.na(lu.to), !is.na(times))
-
-lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest", "urban")
-plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
-
-lu_labels <- c(
-  cropland = "Cropland",
-  forest = "Forest",
-  newforest = "New forest",
-  otherland = "Other land",
-  pasture = "Pasture",
-  urban = "Urban"
-)
-
-# ----------------------------
-# GLOBAL LIMITS
-# ----------------------------
-if (is.null(limits)) {
-  max_abs <- max(abs(plot_df$value), na.rm = TRUE)
-  limits <- c(-max_abs, max_abs)
-}
-
-# ----------------------------
-# PLOT
-# ----------------------------
-p <- ggplot2::ggplot(plot_df) +
-  ggplot2::geom_raster(
-    ggplot2::aes(x = x, y = y, fill = value)
-  ) +
-  ggplot2::scale_fill_gradient2(
-    low = "#b2182b",      # dark red
-    mid = "white",
-    high = "#1a7f37",     # dark green
-    midpoint = 0,
-    limits = limits,
-    na.value = na_color,
-    name = "1000 ha"
-  ) +
-  ggplot2::coord_equal(expand = FALSE) +
-  theme_fdr_map() +
-  ggplot2::facet_grid(
-    times ~ lu.to,
-    labeller = ggplot2::labeller(lu.to = lu_labels)
+  lu_labels <- c(
+    cropland = "Cropland",
+    forest = "Forest",
+    newforest = "New forest",
+    otherland = "Other land",
+    pasture = "Pasture",
+    urban = "Urban"
   )
 
-# ----------------------------
-# BORDER (same logic as your LU function)
-# ----------------------------
-if (add_border) {
+  # ----------------------------
+  # Global symmetric limits
+  # ----------------------------
+  if (is.null(limits)) {
+    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
+    limits <- c(-max_abs, max_abs)
+  }
 
-  r <- rasterized_layer
-  r[!is.na(r)] <- 1
-
-  country_border <- terra::as.polygons(r, dissolve = TRUE)
-  country_border <- sf::st_as_sf(country_border)
-
-  p <- p +
-    ggplot2::geom_sf(
-      data = country_border,
-      fill = NA,
-      color = "black",
-      linewidth = 0.5
+  # ----------------------------
+  # Plot
+  # ----------------------------
+  p <- ggplot2::ggplot(plot_df) +
+    ggplot2::geom_raster(
+      ggplot2::aes(x = x, y = y, fill = value)
+    ) +
+    ggplot2::scale_fill_gradient2(
+      low = "#b2182b",
+      mid = "white",
+      high = "#1a7f37",
+      midpoint = 0,
+      limits = limits,
+      na.value = na_color,
+      name = "1000 ha"
+    ) +
+    ggplot2::coord_equal(expand = FALSE) +
+    theme_fdr_map() +
+    ggplot2::facet_grid(
+      times ~ lu.to,
+      labeller = ggplot2::labeller(lu.to = lu_labels)
     )
-}
 
-return(p)
+  # ----------------------------
+  # Border
+  # ----------------------------
+  if (add_border) {
+
+    r <- rasterized_layer
+    r[!is.na(r)] <- 1
+
+    country_border <- terra::as.polygons(r, dissolve = TRUE)
+    country_border <- sf::st_as_sf(country_border)
+
+    p <- p +
+      ggplot2::geom_sf(
+        data = country_border,
+        fill = NA,
+        color = "black",
+        linewidth = 0.5
+      )
+  }
+
+  return(p)
 }
 
 
