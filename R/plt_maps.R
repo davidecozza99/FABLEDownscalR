@@ -166,12 +166,22 @@ fdr_plot_downscaled_LU_one <- function(
   # ----------------------------
   # Colors
   # ----------------------------
-  lu_colors <- c(
-    cropland  = "#B8860B",
-    forest    = "#006400",
-    pasture   = "#B22222",
+  lu_colors <- list(
+    cropland = "#B8860B",
+    forest = "#006400",
+    newforest = "#90EE90",
     otherland = "#6A0DAD",
-    urban     = "#808080"
+    pasture = "#B22222",
+    urban     = "grey50"
+    )
+
+  lu_labels <- c(
+    cropland  = "Cropland",
+    forest    = "Forest",
+    newforest = "New forest",
+    otherland = "Other land",
+    pasture   = "Pasture",
+    urban     = "Urban"
   )
 
   # ----------------------------
@@ -182,9 +192,12 @@ fdr_plot_downscaled_LU_one <- function(
       ggplot2::aes(x = x, y = y, fill = top1)
     ) +
     ggplot2::scale_fill_manual(
-      values = lu_colors,
+      values = unlist(lu_colors),
+      breaks = names(lu_colors),
+      labels = lu_labels[breaks],
       name   = "Dominant land use"
     )
+
 
   # ----------------------------
   # Stripe layer: secondary LU color, thick + dense
