@@ -108,7 +108,6 @@ fdr_plot_downscaled_LU <- function(
     ns_map,
     year = NULL,
     LU = NULL,
-    limits = NULL,
     na_color = "grey90",
     add_border = TRUE
 ) {
@@ -140,26 +139,33 @@ fdr_plot_downscaled_LU <- function(
   }
 
   # -----------------------------------
-  # Compute dominant land use + dominance
+  # SAFE dominant class + dominance index
   # -----------------------------------
   inputs_dom <- inputs %>%
     dplyr::group_by(ns, times) %>%
     dplyr::arrange(dplyr::desc(value), .by_group = TRUE) %>%
     dplyr::mutate(rank = dplyr::row_number()) %>%
-    dplyr::filter(rank <= 2) %>%
     dplyr::summarise(
       lu.to = first(lu.to),
       value1 = first(value),
-      value2 = dplyr::nth(value, 2),
+      value2 = ifelse(n() > 1, value[2], 0),
       dominance = value1 - value2,
       .groups = "drop"
+    )
+
+  # -----------------------------------
+  # OPTIONAL: normalize dominance (recommended)
+  # -----------------------------------
+  inputs_dom <- inputs_dom %>%
+    dplyr::mutate(
+      dominance = dominance / max(dominance, na.rm = TRUE)
     )
 
   # -----------------------------------
   # Merge with pixel grid
   # -----------------------------------
   plot_df <- df_pix %>%
-    dplyr::left_join(inputs_dom, by = "ns") %>%
+    dplyr::left_join(inputs_dom, by = "ns", relationship = "many-to-one") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
   # -----------------------------------
@@ -187,13 +193,6 @@ fdr_plot_downscaled_LU <- function(
   )
 
   # -----------------------------------
-  # Limits (optional)
-  # -----------------------------------
-  if (is.null(limits)) {
-    limits <- range(plot_df$dominance, na.rm = TRUE)
-  }
-
-  # -----------------------------------
   # Plot
   # -----------------------------------
   p <- ggplot2::ggplot(plot_df) +
@@ -206,12 +205,12 @@ fdr_plot_downscaled_LU <- function(
       )
     ) +
     ggplot2::scale_fill_manual(values = lu_colors, labels = lu_labels) +
-    ggplot2::scale_alpha(range = c(0.3, 1), guide = "none") +
+    ggplot2::scale_alpha(range = c(0.2, 1), guide = "none") +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
       times ~ .,
-      labeller = ggplot2::labeller(times = label_value)
+      labeller = ggplot2::label_value
     )
 
   # -----------------------------------
@@ -219,8 +218,10 @@ fdr_plot_downscaled_LU <- function(
   # -----------------------------------
   if (add_border) {
 
-    r <- rasterized_layer
-    r[!is.na(r)] <- 1
+    r <- terra::app(
+      rasterized_layer,
+      fun = function(x) ifelse(is.na(x), NA, 1)
+    )
 
     country_border <- terra::as.polygons(r, dissolve = TRUE)
     country_border <- sf::st_as_sf(country_border)
@@ -236,7 +237,6 @@ fdr_plot_downscaled_LU <- function(
 
   return(p)
 }
-
 
 
 
