@@ -194,7 +194,7 @@ fdr_plot_downscaled_LU_one <- function(
     ggplot2::scale_fill_manual(
       values = unlist(lu_colors),
       breaks = names(lu_colors),
-      labels = lu_labels[breaks],
+      labels = lu_labels[names(lu_colors)],
       name   = "Dominant land use"
     )
 
