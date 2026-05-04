@@ -239,6 +239,8 @@ fdr_plot_downscaled_LU_one <- function(
 
 # LAND USE (multiple maps)
 
+# LAND USE
+
 fdr_plot_downscaled_LU <- function(
     out_res,
     rasterized_layer,
@@ -254,16 +256,10 @@ fdr_plot_downscaled_LU <- function(
 
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
-  # ----------------------------
-  # Raster base
-  # ----------------------------
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  # ----------------------------
-  # Aggregate transitions
-  # ----------------------------
   inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
@@ -272,57 +268,65 @@ fdr_plot_downscaled_LU <- function(
     inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
   }
 
-  if (!is.null(year)) {
-    inputs <- inputs %>% dplyr::filter(times %in% year)
+  if (!is.null(year)) {inputs <- inputs %>% dplyr::filter(times %in% year)
   }
 
-  # ----------------------------
-  # Merge
-  # ----------------------------
   plot_df <- df_pix %>%
     dplyr::left_join(inputs, by = "ns") %>%
     dplyr::filter(!is.na(lu.to), !is.na(times))
 
-  # ----------------------------
-  # Order + labels
-  # ----------------------------
-  lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest", "urban")
-
+  lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
+
+  lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
+
+  if (is.null(limits)) {
+    limits <- range(plot_df$value, na.rm = TRUE)
+  }
+
+  lu_colors <- list(
+    cropland = "#B8860B",
+    forest = "#006400",
+    newforest = "#90EE90",
+    otherland = "#6A0DAD",
+    pasture = "#B22222"
+  )
 
   lu_labels <- c(
     cropland = "Cropland",
     forest = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture",
-    urban = "Urban"
+    pasture = "Pasture"
   )
 
-  # ----------------------------
-  # Global symmetric limits
-  # ----------------------------
-  if (is.null(limits)) {
-    max_abs <- max(abs(plot_df$value), na.rm = TRUE)
-    limits <- c(-max_abs, max_abs)
+  library(ggnewscale)
+
+  p <- ggplot2::ggplot()
+
+  for (i in seq_along(lu_present)) {
+
+    lu <- lu_present[i]
+
+    p <- p +
+      ggplot2::geom_raster(
+        data = dplyr::filter(plot_df, lu.to == lu),
+        ggplot2::aes(x = x, y = y, fill = value)
+      ) +
+      ggplot2::scale_fill_gradient(
+        low = "white",
+        high = lu_colors[[lu]],
+        limits = limits,
+        na.value = na_color,
+        name = paste0(lu_labels[[lu]], " (1000 ha)")
+      )
+
+    if (i < length(lu_present)) {
+      p <- p + ggnewscale::new_scale_fill()
+    }
   }
 
-  # ----------------------------
-  # Plot
-  # ----------------------------
-  p <- ggplot2::ggplot(plot_df) +
-    ggplot2::geom_raster(
-      ggplot2::aes(x = x, y = y, fill = value)
-    ) +
-    ggplot2::scale_fill_gradient2(
-      low = "#b2182b",
-      mid = "white",
-      high = "#1a7f37",
-      midpoint = 0,
-      limits = limits,
-      na.value = na_color,
-      name = "1000 ha"
-    ) +
+  p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
@@ -330,9 +334,6 @@ fdr_plot_downscaled_LU <- function(
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
-  # ----------------------------
-  # Border
-  # ----------------------------
   if (add_border) {
 
     r <- rasterized_layer
@@ -352,7 +353,6 @@ fdr_plot_downscaled_LU <- function(
 
   return(p)
 }
-
 
 
 # LAND USE CHANGE (multiple maps)
