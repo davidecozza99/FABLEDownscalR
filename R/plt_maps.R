@@ -187,7 +187,7 @@ fdr_plot_downscaled_LU_one <- function(
     )
 
   # ----------------------------
-  # Stripe layer: secondary LU color, thick + dense
+  # Stripe layer: secondary LU color
   # ----------------------------
   if (nrow(secondary_df) > 0) {
     p <- p +
@@ -208,9 +208,6 @@ fdr_plot_downscaled_LU_one <- function(
       )
   }
 
-  # ----------------------------
-  # Final assembly
-  # ----------------------------
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
@@ -437,9 +434,9 @@ fdr_plot_downscaled_LUC <- function(
       ggplot2::aes(x = x, y = y, fill = value)
     ) +
     ggplot2::scale_fill_gradient2(
-      low = "#b2182b",      # dark red
+      low = "#b2182b",
       mid = "white",
-      high = "#1a7f37",     # dark green
+      high = "#1a7f37",
       midpoint = 0,
       limits = limits,
       na.value = na_color,
@@ -453,7 +450,7 @@ fdr_plot_downscaled_LUC <- function(
     )
 
   # ----------------------------
-  # BORDER (same logic as your LU function)
+  # BORDER
   # ----------------------------
   if (add_border) {
 
