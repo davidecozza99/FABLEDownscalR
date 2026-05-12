@@ -534,7 +534,6 @@ fdr_plot_downscaled_GHG <- function(
       mid = "white",
       high = "#1a7f37",
       midpoint = 0,
-      limits = limits,
       na.value = na_color,
       name  = "GHG from land use change ",
       guide = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
