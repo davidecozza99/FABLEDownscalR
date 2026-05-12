@@ -471,3 +471,88 @@ fdr_plot_downscaled_LUC <- function(
 
   return(p)
 }
+
+
+
+# GHG (one aggregated map)
+
+fdr_plot_downscaled_GHG <- function(
+    out_res,
+    rasterized_layer,
+    ns_map,
+    year                = NULL,
+    LU                  = NULL,
+    na_color            = "grey90",
+    add_border          = TRUE
+) {
+
+  chk_required_cols(out_res, c("ns", "lu.to", "times", "GHG_biomass"))
+
+  out_int <- fdr_to_ns_int(out_res, ns_map)
+
+  # ----------------------------
+  # Raster base
+  # ----------------------------
+  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
+  names(df_pix)[3] <- "ns"
+  df_pix <- dplyr::filter(df_pix, !is.na(ns))
+
+  # ----------------------------
+  # Aggregate GHG_biomass
+  # ----------------------------
+  inputs <- out_int %>%
+    dplyr::group_by(ns, lu.to, times) %>%
+    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
+
+  if (!is.null(LU))   inputs <- dplyr::filter(inputs, lu.to %in% LU)
+  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
+
+  # ----------------------------
+  # Sum GHG_biomass per ns x times (across all LU)
+  # ----------------------------
+  inputs_agg <- inputs %>%
+    dplyr::group_by(ns, times) %>%
+    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
+
+  # ----------------------------
+  # Merge with raster grid
+  # ----------------------------
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs_agg, by = "ns") %>%
+    dplyr::filter(!is.na(GHG_biomass), !is.na(times))
+
+  # ----------------------------
+  # Plot
+  # ----------------------------
+  p <- ggplot2::ggplot(plot_df) +
+    ggplot2::geom_raster(
+      ggplot2::aes(x = x, y = y, fill = GHG_biomass)
+    ) +
+    ggplot2::scale_fill_gradient(
+      low   = "#FFFFF0",   # ivory
+      high  = "#3B0057",   # deep purple
+      name  = "GHG biomass",
+      guide = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
+    ) +
+    ggplot2::coord_equal(expand = FALSE) +
+    theme_fdr_map() +
+    ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
+
+  # ----------------------------
+  # Border
+  # ----------------------------
+  if (add_border) {
+    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+
+    p <- p +
+      ggplot2::geom_sf(
+        data      = border,
+        fill      = NA,
+        color     = "black",
+        linewidth = 0.5
+      )
+  }
+
+  return(p)
+}
