@@ -529,7 +529,7 @@ fdr_plot_downscaled_GHG <- function(
     ggplot2::geom_raster(
       ggplot2::aes(x = x, y = y, fill = GHG_biomass)
     ) +
-    ggplot2::scale_fill_gradient(
+    ggplot2::scale_fill_gradient2(
       low   = "white",
       high  = "#3B0057",
       name  = "GHG from land use change ",
