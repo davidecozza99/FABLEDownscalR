@@ -255,7 +255,9 @@ fdr_plot_downscaled_LU <- function(
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-  inputs <- out_int %>%
+
+
+   <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
@@ -501,6 +503,7 @@ fdr_plot_downscaled_GHG <- function(
   # Aggregate GHG_biomass
   # ----------------------------
   inputs <- out_int %>%
+    dplyr::mutate(GHG_biomass = tidyr::replace_na(GHG_biomass, 0)) %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
 
