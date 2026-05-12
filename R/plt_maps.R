@@ -530,9 +530,9 @@ fdr_plot_downscaled_GHG <- function(
       ggplot2::aes(x = x, y = y, fill = GHG_biomass)
     ) +
     ggplot2::scale_fill_gradient(
-      low   = "#FFFFF0",   # ivory
-      high  = "#3B0057",   # deep purple
-      name  = "GHG biomass",
+      low   = "white",
+      high  = "#3B0057",
+      name  = "GHG from land use change ",
       guide = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
     ) +
     ggplot2::coord_equal(expand = FALSE) +
