@@ -100,6 +100,17 @@ theme_fdr_map <- function(base_size = 11) {
     )
 }
 
+# Border
+fdr_get_border <- function(rasterized_layer, border_sf = NULL) {
+  if (!is.null(border_sf)) {
+    return(border_sf)
+  }
+  r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+  border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+  return(border)
+}
+
+
 # LAND USE (one aggregated map)
 
 library(ggpattern)
@@ -217,12 +228,9 @@ fdr_plot_downscaled_LU_one <- function(
   # Border
   # ----------------------------
   if (add_border) {
-    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
-
     p <- p +
       ggplot2::geom_sf(
-        data      = border,
+        data      = fdr_get_border(rasterized_layer, border_sf),
         fill      = NA,
         color     = "black",
         linewidth = 0.5
@@ -332,18 +340,11 @@ fdr_plot_downscaled_LU <- function(
     )
 
   if (add_border) {
-
-    r <- rasterized_layer
-    r[!is.na(r)] <- 1
-
-    country_border <- terra::as.polygons(r, dissolve = TRUE)
-    country_border <- sf::st_as_sf(country_border)
-
     p <- p +
       ggplot2::geom_sf(
-        data = country_border,
-        fill = NA,
-        color = "black",
+        data      = fdr_get_border(rasterized_layer, border_sf),
+        fill      = NA,
+        color     = "black",
         linewidth = 0.5
       )
   }
@@ -453,24 +454,18 @@ fdr_plot_downscaled_LUC <- function(
   # BORDER
   # ----------------------------
   if (add_border) {
-
-    r <- rasterized_layer
-    r[!is.na(r)] <- 1
-
-    country_border <- terra::as.polygons(r, dissolve = TRUE)
-    country_border <- sf::st_as_sf(country_border)
-
     p <- p +
       ggplot2::geom_sf(
-        data = country_border,
-        fill = NA,
-        color = "black",
+        data      = fdr_get_border(rasterized_layer, border_sf),
+        fill      = NA,
+        color     = "black",
         linewidth = 0.5
       )
   }
 
   return(p)
 }
+
 
 
 
@@ -530,9 +525,9 @@ fdr_plot_downscaled_GHG <- function(
       ggplot2::aes(x = x, y = y, fill = GHG_biomass)
     ) +
     ggplot2::scale_fill_gradient2(
-      low = "#b2182b",
+      low = "#1a7f37",
       mid = "white",
-      high = "#1a7f37",
+      high = "#b2182b",
       midpoint = 0,
       na.value = na_color,
       name  = "GHG from land use change ",
@@ -546,12 +541,9 @@ fdr_plot_downscaled_GHG <- function(
   # Border
   # ----------------------------
   if (add_border) {
-    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
-
     p <- p +
       ggplot2::geom_sf(
-        data      = border,
+        data      = fdr_get_border(rasterized_layer, border_sf),
         fill      = NA,
         color     = "black",
         linewidth = 0.5
