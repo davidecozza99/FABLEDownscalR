@@ -255,9 +255,7 @@ fdr_plot_downscaled_LU <- function(
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
-
-
-   <- out_int %>%
+  inputs <- out_int %>%
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
