@@ -454,13 +454,11 @@ fdr_plot_downscaled_LUC <- function(
   # BORDER
   # ----------------------------
   if (add_border) {
+    r             <- rasterized_layer
+    r[!is.na(r)]  <- 1
+    country_border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
     p <- p +
-      ggplot2::geom_sf(
-        data      = fdr_get_border(rasterized_layer, border_sf),
-        fill      = NA,
-        color     = "black",
-        linewidth = 0.5
-      )
+      ggplot2::geom_sf(data = country_border, fill = NA, color = "black", linewidth = 0.5)
   }
 
   return(p)
@@ -541,13 +539,10 @@ fdr_plot_downscaled_GHG <- function(
   # Border
   # ----------------------------
   if (add_border) {
+    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
     p <- p +
-      ggplot2::geom_sf(
-        data      = fdr_get_border(rasterized_layer, border_sf),
-        fill      = NA,
-        color     = "black",
-        linewidth = 0.5
-      )
+      ggplot2::geom_sf(data = border, fill = NA, color = "black", linewidth = 0.5)
   }
 
   return(p)
