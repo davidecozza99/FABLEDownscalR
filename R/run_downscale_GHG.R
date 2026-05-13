@@ -424,7 +424,7 @@ fdr_run_downscaling_GHG <- function(
                 select(id_c, from, to, ef_biomass),
               by = c("ns" ="id_c", "lu.from" = "from", "lu.to" = "to")
     ) %>%
-    mutate(GHG_biomass_MtCO2e = ef_biomass * value * 3.667 / 1000)
+    mutate(GHG_biomass = ef_biomass * value * 3.667 / 1000)
   # ---------------------------------------------------------------------------
   # 6) Return clean outputs to the workflow
   # ---------------------------------------------------------------------------
