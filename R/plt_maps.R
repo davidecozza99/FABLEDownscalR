@@ -475,6 +475,7 @@ fdr_plot_downscaled_GHG <- function(
     out_res,
     rasterized_layer,
     ns_map,
+    border_sf           = NULL,
     year                = NULL,
     LU                  = NULL,
     na_color            = "grey90",
