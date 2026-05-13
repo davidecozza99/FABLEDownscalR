@@ -427,7 +427,7 @@ fdr_plot_downscaled_LUC <- function(
       midpoint = 0,
       limits = limits,
       na.value = na_color,
-      name = "1000 ha"
+      name = "1000 ha "
     ) +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
@@ -514,7 +514,7 @@ fdr_plot_downscaled_GHG <- function(
       high = "#b2182b",
       midpoint = 0,
       na.value = na_color,
-      name  = "GHG from land use change ",
+      name  = "GHG from land use change (MtCO2e) ",
       guide = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
     ) +
     ggplot2::coord_equal(expand = FALSE) +

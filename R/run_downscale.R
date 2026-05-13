@@ -411,7 +411,22 @@ fdr_run_downscaling <- function(
   )
 
   # ---------------------------------------------------------------------------
-  # 5) Return clean outputs to the workflow
+  # 5) Computing GHG due to Land use change by ecoregion
+  # ---------------------------------------------------------------------------
+  library(readxl)
+  library(readr)
+  EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv")
+
+  results$out.res <- results$out.res %>%
+    left_join(EF_Pools_transition_Ecoregion %>%
+                select(id_c, from, to, ef_biomass),
+              by = c("ns" ="id_c", "lu.from" = "from", "lu.to" = "to")
+    ) %>%
+    mutate(GHG_biomass = ef_biomass * value * 3.667 / 1000)
+
+
+  # ---------------------------------------------------------------------------
+  # 6) Return clean outputs to the workflow
   # ---------------------------------------------------------------------------
   list(
     out.res            = results$out.res,
@@ -420,4 +435,7 @@ fdr_run_downscaling <- function(
     pred_coeff_long     = pred_coeff_long,
     country_start_areas = country_start_areas
   )
+
+
+
 }
