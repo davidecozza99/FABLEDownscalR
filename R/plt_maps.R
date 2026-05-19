@@ -121,27 +121,9 @@ fdr_plot_downscaled_LU_one <- function(
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   # ----------------------------
-  # Reproject + crop + mask raster to border (if provided)
-  # ----------------------------
-  if (!is.null(border_sf)) {
-    border_projected <- sf::st_transform(
-      border_sf,
-      crs = sf::st_crs(terra::crs(rasterized_layer))
-    )
-    border_vect    <- terra::vect(border_projected)
-    rasterized_use <- terra::crop(rasterized_layer, border_vect) %>%
-      terra::mask(border_vect)
-    bbox           <- sf::st_bbox(border_projected)
-  } else {
-    border_projected <- NULL
-    rasterized_use   <- rasterized_layer
-    bbox             <- NULL
-  }
-
-  # ----------------------------
   # Raster base
   # ----------------------------
-  df_pix <- terra::as.data.frame(rasterized_use, xy = TRUE, na.rm = FALSE)
+  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
@@ -227,15 +209,8 @@ fdr_plot_downscaled_LU_one <- function(
       )
   }
 
-  # ----------------------------
-  # Coord + theme + facet
-  # ----------------------------
   p <- p +
-    ggplot2::coord_equal(
-      expand = FALSE,
-      xlim   = if (!is.null(bbox)) c(bbox["xmin"], bbox["xmax"]) else NULL,
-      ylim   = if (!is.null(bbox)) c(bbox["ymin"], bbox["ymax"]) else NULL
-    ) +
+    ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
 
@@ -243,29 +218,29 @@ fdr_plot_downscaled_LU_one <- function(
   # Border
   # ----------------------------
   if (add_border) {
-    if (!is.null(border_projected)) {
-      border_coords <- sf::st_coordinates(border_projected) %>%
-        as.data.frame() %>%
-        dplyr::rename(x = X, y = Y)
+
+    if (!is.null(border_sf)) {
+      # Reproject real border to match raster CRS
+      raster_crs <- terra::crs(rasterized_layer)
+      border_use  <- sf::st_transform(border_sf, crs = raster_crs)
     } else {
-      r             <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-      border_poly   <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
-      border_coords <- sf::st_coordinates(border_poly) %>%
-        as.data.frame() %>%
-        dplyr::rename(x = X, y = Y)
+      # Fallback: derive border from raster
+      r          <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+      border_use <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
     }
 
     p <- p +
-      ggplot2::geom_path(
-        data      = border_coords,
-        ggplot2::aes(x = x, y = y, group = interaction(L1, L2, L3)),
+      ggplot2::geom_sf(
+        data      = border_use,
+        fill      = NA,
         color     = "black",
-        linewidth = 1.2
+        linewidth = 0.5
       )
   }
 
   return(p)
 }
+
 
 # LAND USE (multiple maps)
 
