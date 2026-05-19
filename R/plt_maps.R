@@ -219,20 +219,18 @@ fdr_plot_downscaled_LU_one <- function(
   # ----------------------------
   if (add_border) {
 
-    if (!is.null(border_sf)) {
-      # Reproject real border to match raster CRS
-      raster_crs <- terra::crs(rasterized_layer)
-      border_use  <- sf::st_transform(border_sf, crs = raster_crs)
-    } else {
-      # Fallback: derive border from raster
-      r          <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-      border_use <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
-    }
+    # Reproject border to raster CRS
+    border_use <- sf::st_transform(border_sf, crs = sf::st_crs(terra::crs(rasterized_layer)))
+
+    # Convert to coordinates dataframe for geom_path (avoids coord_sf conflict with ggpattern)
+    border_coords <- sf::st_coordinates(border_use) %>%
+      as.data.frame() %>%
+      dplyr::rename(x = X, y = Y)
 
     p <- p +
-      ggplot2::geom_sf(
-        data      = border_use,
-        fill      = NA,
+      ggplot2::geom_path(
+        data        = border_coords,
+        ggplot2::aes(x = x, y = y, group = interaction(L1, L2, L3)),
         color     = "black",
         linewidth = 0.5
       )
