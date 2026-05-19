@@ -558,7 +558,7 @@ fdr_plot_downscaled_GHG <- function(
         data      = border_use,
         fill      = NA,
         color     = "black",
-        linewidth = 0.8
+        linewidth = 0.5
       )
   }
 
