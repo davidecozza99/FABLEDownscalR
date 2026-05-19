@@ -243,7 +243,7 @@ fdr_plot_downscaled_LU_one <- function(
         data      = border_use,
         fill      = NA,
         color     = "black",
-        linewidth = 1.0
+        linewidth = 0.8
       )
   }
 
@@ -362,7 +362,7 @@ fdr_plot_downscaled_LU <- function(
         data      = border_use,
         fill      = NA,
         color     = "black",
-        linewidth = 1.0
+        linewidth = 0.8
       )
   }
 
@@ -474,7 +474,7 @@ fdr_plot_downscaled_LUC <- function(
         data      = border_use,
         fill      = NA,
         color     = "black",
-        linewidth = 1.2
+        linewidth = 0.8
       )
   }
 
@@ -558,7 +558,7 @@ fdr_plot_downscaled_GHG <- function(
         data      = border_use,
         fill      = NA,
         color     = "black",
-        linewidth = 1.2
+        linewidth = 0.8
       )
   }
 
