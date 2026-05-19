@@ -121,15 +121,21 @@ fdr_plot_downscaled_LU_one <- function(
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   # ----------------------------
-  # Reproject + mask raster to border (if provided)
+  # Reproject + crop + mask raster to border (if provided)
   # ----------------------------
   if (!is.null(border_sf)) {
-    border_projected   <- sf::st_transform(border_sf, crs = sf::st_crs(terra::crs(rasterized_layer)))
-    border_vect        <- terra::vect(border_projected)
-    rasterized_use     <- terra::mask(rasterized_layer, border_vect)
+    border_projected <- sf::st_transform(
+      border_sf,
+      crs = sf::st_crs(terra::crs(rasterized_layer))
+    )
+    border_vect    <- terra::vect(border_projected)
+    rasterized_use <- terra::crop(rasterized_layer, border_vect) %>%
+      terra::mask(border_vect)
+    bbox           <- sf::st_bbox(border_projected)
   } else {
-    border_projected   <- NULL
-    rasterized_use     <- rasterized_layer
+    border_projected <- NULL
+    rasterized_use   <- rasterized_layer
+    bbox             <- NULL
   }
 
   # ----------------------------
@@ -221,8 +227,15 @@ fdr_plot_downscaled_LU_one <- function(
       )
   }
 
+  # ----------------------------
+  # Coord + theme + facet
+  # ----------------------------
   p <- p +
-    ggplot2::coord_equal(expand = FALSE) +
+    ggplot2::coord_equal(
+      expand = FALSE,
+      xlim   = if (!is.null(bbox)) c(bbox["xmin"], bbox["xmax"]) else NULL,
+      ylim   = if (!is.null(bbox)) c(bbox["ymin"], bbox["ymax"]) else NULL
+    ) +
     theme_fdr_map() +
     ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
 
@@ -230,14 +243,11 @@ fdr_plot_downscaled_LU_one <- function(
   # Border
   # ----------------------------
   if (add_border) {
-
     if (!is.null(border_projected)) {
-      # Real vector border converted to path (avoids coord_sf conflict with ggpattern)
       border_coords <- sf::st_coordinates(border_projected) %>%
         as.data.frame() %>%
         dplyr::rename(x = X, y = Y)
     } else {
-      # Fallback: raster-derived border
       r             <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
       border_poly   <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
       border_coords <- sf::st_coordinates(border_poly) %>%
