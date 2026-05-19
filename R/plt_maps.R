@@ -121,9 +121,21 @@ fdr_plot_downscaled_LU_one <- function(
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   # ----------------------------
+  # Reproject + mask raster to border (if provided)
+  # ----------------------------
+  if (!is.null(border_sf)) {
+    border_projected   <- sf::st_transform(border_sf, crs = sf::st_crs(terra::crs(rasterized_layer)))
+    border_vect        <- terra::vect(border_projected)
+    rasterized_use     <- terra::mask(rasterized_layer, border_vect)
+  } else {
+    border_projected   <- NULL
+    rasterized_use     <- rasterized_layer
+  }
+
+  # ----------------------------
   # Raster base
   # ----------------------------
-  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
+  df_pix <- terra::as.data.frame(rasterized_use, xy = TRUE, na.rm = FALSE)
   names(df_pix)[3] <- "ns"
   df_pix <- dplyr::filter(df_pix, !is.na(ns))
 
@@ -219,20 +231,26 @@ fdr_plot_downscaled_LU_one <- function(
   # ----------------------------
   if (add_border) {
 
-    # Reproject border to raster CRS
-    border_use <- sf::st_transform(border_sf, crs = sf::st_crs(terra::crs(rasterized_layer)))
-
-    # Convert to coordinates dataframe for geom_path (avoids coord_sf conflict with ggpattern)
-    border_coords <- sf::st_coordinates(border_use) %>%
-      as.data.frame() %>%
-      dplyr::rename(x = X, y = Y)
+    if (!is.null(border_projected)) {
+      # Real vector border converted to path (avoids coord_sf conflict with ggpattern)
+      border_coords <- sf::st_coordinates(border_projected) %>%
+        as.data.frame() %>%
+        dplyr::rename(x = X, y = Y)
+    } else {
+      # Fallback: raster-derived border
+      r             <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+      border_poly   <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+      border_coords <- sf::st_coordinates(border_poly) %>%
+        as.data.frame() %>%
+        dplyr::rename(x = X, y = Y)
+    }
 
     p <- p +
       ggplot2::geom_path(
-        data        = border_coords,
+        data      = border_coords,
         ggplot2::aes(x = x, y = y, group = interaction(L1, L2, L3)),
         color     = "black",
-        linewidth = 0.5
+        linewidth = 1.2
       )
   }
 
