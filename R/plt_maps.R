@@ -110,15 +110,14 @@ fdr_plot_downscaled_LU_one <- function(
     out_res,
     rasterized_layer,
     ns_map,
+    border_sf           = NULL,
     year                = NULL,
     LU                  = NULL,
     dominance_threshold = 0.3,
     na_color            = "grey90",
     add_border          = TRUE
 ) {
-
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
-
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   # ----------------------------
@@ -219,15 +218,28 @@ fdr_plot_downscaled_LU_one <- function(
   # Border
   # ----------------------------
   if (add_border) {
-    r      <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
-    border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+
+    if (!is.null(border_sf)) {
+      # Reproject real border to match raster CRS
+      raster_crs <- terra::crs(rasterized_layer)
+      border_use  <- sf::st_transform(border_sf, crs = raster_crs)
+    } else {
+      # Fallback: derive border from raster
+      r          <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+      border_use <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+    }
+
     p <- p +
-      ggplot2::geom_sf(data = border, fill = NA, color = "black", linewidth = 0.5)
+      ggplot2::geom_sf(
+        data      = border_use,
+        fill      = NA,
+        color     = "black",
+        linewidth = 0.5
+      )
   }
 
   return(p)
 }
-
 
 # LAND USE (multiple maps)
 
