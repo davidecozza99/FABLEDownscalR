@@ -251,22 +251,20 @@ fdr_plot_downscaled_LU_one <- function(
 }
 
 
+
 # LAND USE (multiple maps)
-
-
 fdr_plot_downscaled_LU <- function(
     out_res,
     rasterized_layer,
     ns_map,
-    year = NULL,
-    LU = NULL,
-    limits = NULL,
-    na_color = "grey90",
+    border_sf  = NULL,
+    year       = NULL,
+    LU         = NULL,
+    limits     = NULL,
+    na_color   = "grey90",
     add_border = TRUE
 ) {
-
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
-
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
   df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
@@ -277,12 +275,8 @@ fdr_plot_downscaled_LU <- function(
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(value = sum(value), .groups = "drop")
 
-  if (!is.null(LU)) {
-    inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
-  }
-
-  if (!is.null(year)) {inputs <- inputs %>% dplyr::filter(times %in% year)
-  }
+  if (!is.null(LU))   inputs <- inputs %>% dplyr::filter(lu.to %in% LU)
+  if (!is.null(year)) inputs <- inputs %>% dplyr::filter(times %in% year)
 
   plot_df <- df_pix %>%
     dplyr::left_join(inputs, by = "ns") %>%
@@ -293,26 +287,24 @@ fdr_plot_downscaled_LU <- function(
 
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
-  if (is.null(limits)) {
-    limits <- range(plot_df$value, na.rm = TRUE)
-  }
+  if (is.null(limits)) limits <- range(plot_df$value, na.rm = TRUE)
 
   lu_colors <- list(
-    cropland = "#B8860B",
-    forest = "#006400",
+    cropland  = "#B8860B",
+    forest    = "#006400",
     newforest = "#90EE90",
     otherland = "#6A0DAD",
-    pasture = "#B22222",
-    urban='grey50'
+    pasture   = "#B22222",
+    urban     = "grey50"
   )
 
   lu_labels <- c(
-    cropland = "Cropland",
-    forest = "Forest",
+    cropland  = "Cropland",
+    forest    = "Forest",
     newforest = "New forest",
     otherland = "Other land",
-    pasture = "Pasture",
-    urban= "Urban"
+    pasture   = "Pasture",
+    urban     = "Urban"
   )
 
   library(ggnewscale)
@@ -320,25 +312,20 @@ fdr_plot_downscaled_LU <- function(
   p <- ggplot2::ggplot()
 
   for (i in seq_along(lu_present)) {
-
     lu <- lu_present[i]
-
     p <- p +
       ggplot2::geom_raster(
         data = dplyr::filter(plot_df, lu.to == lu),
         ggplot2::aes(x = x, y = y, fill = value)
       ) +
       ggplot2::scale_fill_gradient(
-        low = "white",
-        high = lu_colors[[lu]],
-        limits = limits,
+        low      = "white",
+        high     = lu_colors[[lu]],
+        limits   = limits,
         na.value = na_color,
-        name = paste0(lu_labels[[lu]], " (1000 ha)")
+        name     = paste0(lu_labels[[lu]], " (1000 ha)")
       )
-
-    if (i < length(lu_present)) {
-      p <- p + ggnewscale::new_scale_fill()
-    }
+    if (i < length(lu_present)) p <- p + ggnewscale::new_scale_fill()
   }
 
   p <- p +
@@ -349,12 +336,34 @@ fdr_plot_downscaled_LU <- function(
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
+  # ----------------------------
+  # Border + white mask outside
+  # ----------------------------
   if (add_border) {
-    r             <- rasterized_layer
-    r[!is.na(r)]  <- 1
-    country_border <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+    if (!is.null(border_sf)) {
+      raster_crs <- terra::crs(rasterized_layer)
+      border_use <- sf::st_transform(border_sf, crs = raster_crs)
+    } else {
+      r          <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+      border_use <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+    }
+
+    bbox_poly    <- sf::st_as_sfc(sf::st_bbox(border_use))
+    outside_poly <- sf::st_difference(bbox_poly, sf::st_union(border_use))
+
     p <- p +
-      ggplot2::geom_sf(data = country_border, fill = NA, color = "black", linewidth = 0.5)
+      ggplot2::geom_sf(
+        data      = outside_poly,
+        fill      = "white",
+        color     = NA,
+        linewidth = 0
+      ) +
+      ggplot2::geom_sf(
+        data      = border_use,
+        fill      = NA,
+        color     = "black",
+        linewidth = 1.2
+      )
   }
 
   return(p)
