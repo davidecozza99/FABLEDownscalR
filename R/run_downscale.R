@@ -415,14 +415,16 @@ fdr_run_downscaling <- function(
   # ---------------------------------------------------------------------------
   library(readxl)
   library(readr)
-  EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv")
+  EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv") %>%
+    filter(iso3 == "UZB") # Need to update according to the country
 
-  # results$out.res <- results$out.res %>%
-  #   left_join(EF_Pools_transition_Ecoregion %>%
-  #               select(id_c, from, to, ef_biomass),
-  #             by = c("ns" ="id_c", "lu.from" = "from", "lu.to" = "to")
-  #   ) %>%
-  #   mutate(GHG_biomass = ef_biomass * value * 3.667 / 1000)
+
+  results$out.res <- results$out.res %>%
+    left_join(EF_Pools_transition_Ecoregion %>%
+                select(id_c, from, to, ef_biomass),
+                by = c("ns" ="id_c", "lu.from" = "from", "lu.to" = "to")
+    ) %>%
+    mutate(GHG_biomass = ef_biomass * value * 3.667 / 1000)
 
 
   # ---------------------------------------------------------------------------
