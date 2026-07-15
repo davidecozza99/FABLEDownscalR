@@ -44,7 +44,8 @@ fdr_run_downscaling <- function(
     country_luc,
     priors,
     mnl_niter = 100,
-    mnl_nburn = 50
+    mnl_nburn = 50,
+    country_iso3
 ) {
 
   if (!requireNamespace("downscalr", quietly = TRUE)) {
@@ -415,8 +416,21 @@ fdr_run_downscaling <- function(
   # ---------------------------------------------------------------------------
   library(readxl)
   library(readr)
+  # EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv") %>%
+  #   filter(iso3 == "UZB") # Need to update according to the country
+
+
+  if (missing(country_iso3) || is.null(country_iso3) || !nzchar(country_iso3)) {
+    stop("fdr_run_downscaling(): `country_iso3` must be supplied (e.g. 'UZB').")
+  }
+
   EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv") %>%
-    filter(iso3 == "UZB") # Need to update according to the country
+    filter(iso3 == country_iso3)
+
+  if (nrow(EF_Pools_transition_Ecoregion) == 0) {
+    stop("No rows found in EF_Pools_transition_Ecoregion.csv for iso3 = '", country_iso3, "'.")
+  }
+
 
 
   results$out.res <- results$out.res %>%
