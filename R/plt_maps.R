@@ -487,7 +487,7 @@ fdr_plot_downscaled_LUC <- function(
 
 
 # GHG (one aggregated map)
-fdr_plot_downscaled_GHG <- function(
+fdr_plot_downscaled_GHG_cum <- function(
     out_res,
     rasterized_layer,
     ns_map,
@@ -543,6 +543,93 @@ fdr_plot_downscaled_GHG <- function(
       midpoint = 0,
       na.value = na_color,
       name     = NULL,
+      guide    = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
+    ) +
+    ggplot2::coord_equal(expand = FALSE) +
+    theme_fdr_map() +
+    ggplot2::facet_grid(. ~ times, labeller = ggplot2::label_value)
+
+  # ----------------------------
+  # Border + white mask outside
+  # ----------------------------
+  if (add_border) {
+    if (!is.null(border_sf)) {
+      raster_crs <- terra::crs(rasterized_layer)
+      border_use <- sf::st_transform(border_sf, crs = raster_crs)
+    } else {
+      r          <- terra::app(rasterized_layer, function(x) ifelse(is.na(x), NA, 1))
+      border_use <- sf::st_as_sf(terra::as.polygons(r, dissolve = TRUE))
+    }
+
+    bbox_poly    <- sf::st_as_sfc(sf::st_bbox(border_use))
+    outside_poly <- sf::st_difference(bbox_poly, sf::st_union(border_use))
+
+    p <- p +
+      ggplot2::geom_sf(
+        data      = outside_poly,
+        fill      = "white",
+        color     = NA,
+        linewidth = 0
+      ) +
+      ggplot2::geom_sf(
+        data      = border_use,
+        fill      = NA,
+        color     = "grey60",
+        linewidth = 0.3
+      )
+  }
+
+  return(p)
+}
+
+
+
+
+fdr_plot_downscaled_GHG <- function(
+    out_res,
+    rasterized_layer,
+    ns_map,
+    border_sf  = NULL,
+    year       = c(2020, 2050),
+    LU         = NULL,
+    na_color   = "grey90",
+    add_border = TRUE
+) {
+  chk_required_cols(out_res, c("ns", "lu.to", "times", "GHG_biomass"))
+  out_int <- fdr_to_ns_int(out_res, ns_map)
+
+  df_pix <- terra::as.data.frame(rasterized_layer, xy = TRUE, na.rm = FALSE)
+  names(df_pix)[3] <- "ns"
+  df_pix <- dplyr::filter(df_pix, !is.na(ns))
+
+  inputs <- out_int %>%
+    dplyr::mutate(GHG_biomass = tidyr::replace_na(GHG_biomass, 0)) %>%
+    dplyr::group_by(ns, lu.to, times) %>%
+    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
+
+  if (!is.null(LU))   inputs <- dplyr::filter(inputs, lu.to %in% LU)
+  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
+
+  inputs_agg <- inputs %>%
+    dplyr::group_by(ns, times) %>%
+    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
+
+  inputs_agg <- inputs_agg %>%
+    dplyr::mutate(times = factor(times, levels = sort(unique(as.numeric(as.character(times))))))
+
+  plot_df <- df_pix %>%
+    dplyr::left_join(inputs_agg, by = "ns") %>%
+    dplyr::filter(!is.na(GHG_biomass), !is.na(times))
+
+  p <- ggplot2::ggplot(plot_df) +
+    ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = GHG_biomass)) +
+    ggplot2::scale_fill_gradient2(
+      low      = "#1a7f37",
+      mid      = "white",
+      high     = "#b2182b",
+      midpoint = 0,
+      na.value = na_color,
+      name     = NULL,   # legend title removed
       guide    = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
     ) +
     ggplot2::coord_equal(expand = FALSE) +
