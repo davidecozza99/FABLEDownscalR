@@ -262,7 +262,7 @@ fdr_plot_downscaled_LU <- function(
     rasterized_layer,
     ns_map,
     border_sf  = NULL,
-    year       = NULL,
+    year       = c(2020, 2050),
     LU         = NULL,
     limits     = NULL,
     na_color   = "grey90",
@@ -288,20 +288,21 @@ fdr_plot_downscaled_LU <- function(
 
   lu_order <- c("newforest", "cropland", "otherland", "forest", "pasture")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
-
   lu_present <- na.omit(unique(as.character(plot_df$lu.to)))
 
   if (is.null(limits)) limits <- range(plot_df$value, na.rm = TRUE)
 
-  lu_colors <- list(
-    cropland  = "#B8860B",
-    forest    = "#006400",
-    newforest = "#90EE90",
-    otherland = "#6A0DAD",
-    pasture   = "#B22222",
-    urban     = "grey50"
-  )
+  plot_df <- plot_df %>%
+    dplyr::mutate(times = factor(times, levels = sort(unique(as.numeric(as.character(times))))))
 
+  lu_colors <- list(
+    cropland  = "#FFA500",
+    forest    = "#00B300",
+    newforest = "#7CFC00",
+    otherland = "#A020F0",
+    pasture   = "#FF0000",
+    urban     = "#A9A9A9"
+  )
   lu_labels <- c(
     cropland  = "Cropland",
     forest    = "Forest",
@@ -312,9 +313,7 @@ fdr_plot_downscaled_LU <- function(
   )
 
   library(ggnewscale)
-
   p <- ggplot2::ggplot()
-
   for (i in seq_along(lu_present)) {
     lu <- lu_present[i]
     p <- p +
@@ -336,7 +335,7 @@ fdr_plot_downscaled_LU <- function(
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
-      times ~ lu.to,
+      lu.to ~ times,
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
@@ -365,14 +364,13 @@ fdr_plot_downscaled_LU <- function(
       ggplot2::geom_sf(
         data      = border_use,
         fill      = NA,
-        color     = "black",
-        linewidth = 0.8
+        color     = "grey60",
+        linewidth = 0.3
       )
   }
 
   return(p)
 }
-
 
 # LAND USE CHANGE (multiple maps)
 fdr_plot_downscaled_LUC <- function(
@@ -583,14 +581,12 @@ fdr_plot_downscaled_GHG_cum <- function(
 }
 
 
-
-
 fdr_plot_downscaled_GHG <- function(
     out_res,
     rasterized_layer,
     ns_map,
     border_sf  = NULL,
-    year       = c(2020, 2050),
+    year       = NULL,
     LU         = NULL,
     na_color   = "grey90",
     add_border = TRUE
