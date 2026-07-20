@@ -384,7 +384,6 @@ fdr_plot_downscaled_LUC <- function(
     na_color   = "grey90",
     add_border = TRUE
 ) {
-
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
@@ -417,7 +416,6 @@ fdr_plot_downscaled_LUC <- function(
 
   lu_order <- c("cropland", "newforest", "otherland", "pasture", "forest", "urban")
   plot_df$lu.to <- factor(plot_df$lu.to, levels = lu_order)
-
   lu_labels <- c(
     cropland  = "Cropland",
     forest    = "Forest",
@@ -435,9 +433,9 @@ fdr_plot_downscaled_LUC <- function(
   p <- ggplot2::ggplot(plot_df) +
     ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value)) +
     ggplot2::scale_fill_gradient2(
-      low      = "#b2182b",
+      low      = "#FF0000",
       mid      = "white",
-      high     = "#1a7f37",
+      high     = "#00B300",
       midpoint = 0,
       limits   = limits,
       na.value = na_color,
@@ -475,8 +473,8 @@ fdr_plot_downscaled_LUC <- function(
       ggplot2::geom_sf(
         data      = border_use,
         fill      = NA,
-        color     = "black",
-        linewidth = 0.8
+        color     = "grey60",
+        linewidth = 0.3
       )
   }
 
