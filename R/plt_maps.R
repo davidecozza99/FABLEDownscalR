@@ -255,7 +255,6 @@ fdr_plot_downscaled_LU_one <- function(
 }
 
 
-
 # LAND USE (multiple maps)
 fdr_plot_downscaled_LU <- function(
     out_res,
@@ -335,7 +334,7 @@ fdr_plot_downscaled_LU <- function(
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
-      lu.to ~ times,
+      . ~ times + lu.to,
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
@@ -371,6 +370,7 @@ fdr_plot_downscaled_LU <- function(
 
   return(p)
 }
+
 
 # LAND USE CHANGE (multiple maps)
 fdr_plot_downscaled_LUC <- function(
