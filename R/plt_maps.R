@@ -102,7 +102,7 @@ theme_fdr_map <- function(base_size = 11) {
 
 
 
-# LAND USE (one aggregated map)
+# LAND USE (one aggregated map, 2020 vs 2050 side by side)
 
 library(ggpattern)
 
@@ -111,7 +111,7 @@ fdr_plot_downscaled_LU_one <- function(
     rasterized_layer,
     ns_map,
     border_sf           = NULL,
-    year                = NULL,
+    year                = c(2020, 2050),
     LU                  = NULL,
     dominance_threshold = 0.3,
     na_color            = "grey90",
@@ -135,7 +135,7 @@ fdr_plot_downscaled_LU_one <- function(
     dplyr::summarise(value = sum(value), .groups = "drop")
 
   if (!is.null(LU))   inputs <- dplyr::filter(inputs, lu.to %in% LU)
-  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
+  inputs <- dplyr::filter(inputs, times %in% year)
 
   # ----------------------------
   # Dominant + secondary LU
@@ -155,6 +155,10 @@ fdr_plot_downscaled_LU_one <- function(
       has_secondary = dominance < dominance_threshold & !is.na(top2)
     )
 
+  # Keep facet order 2020 -> 2050 regardless of factor/character type
+  inputs_dom <- inputs_dom %>%
+    dplyr::mutate(times = factor(times, levels = sort(unique(as.numeric(as.character(times))))))
+
   # ----------------------------
   # Merge with raster grid
   # ----------------------------
@@ -165,14 +169,14 @@ fdr_plot_downscaled_LU_one <- function(
   secondary_df <- dplyr::filter(plot_df, has_secondary)
 
   # ----------------------------
-  # Colors
+  # Colors (brighter / more saturated palette)
   # ----------------------------
   lu_colors <- c(
-    cropland  = "#B8860B",
-    forest    = "#006400",
-    pasture   = "#B22222",
-    otherland = "#6A0DAD",
-    urban     = "#808080"
+    cropland  = "#FFA500",
+    forest    = "#00B300",
+    pasture   = "#FF0000",
+    otherland = "#A020F0",
+    urban     = "#A9A9A9"
   )
 
   # ----------------------------
@@ -212,7 +216,8 @@ fdr_plot_downscaled_LU_one <- function(
   p <- p +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
-    ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
+    # Horizontal layout
+    ggplot2::facet_grid(. ~ times, labeller = ggplot2::label_value)
 
   # ----------------------------
   # Border + white mask outside
@@ -238,12 +243,11 @@ fdr_plot_downscaled_LU_one <- function(
         color     = NA,
         linewidth = 0
       ) +
-      # Border line on top
       ggplot2::geom_sf(
         data      = border_use,
         fill      = NA,
-        color     = "black",
-        linewidth = 0.8
+        color     = "grey60",
+        linewidth = 0.3
       )
   }
 
