@@ -425,7 +425,10 @@ fdr_run_downscaling <- function(
   }
 
   EF_Pools_transition_Ecoregion <- read_csv("Data/EF_Pools_transition_Ecoregion.csv") %>%
-    filter(iso3 == country_iso3)
+    filter(iso3 == country_iso3) %>%
+    mutate(lu.to = (ifelse(lu.to == "forest", "newforest", lu.to))) %>%
+    mutate(ef_biomass = (ifelse(lu.to =="newforest", ef_biomass/50, ef_biomass)))
+
 
   if (nrow(EF_Pools_transition_Ecoregion) == 0) {
     stop("No rows found in EF_Pools_transition_Ecoregion.csv for iso3 = '", country_iso3, "'.")
