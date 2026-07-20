@@ -492,12 +492,11 @@ fdr_plot_downscaled_GHG <- function(
     rasterized_layer,
     ns_map,
     border_sf  = NULL,
-    year       = NULL,
+    year       = c(2020, 2050),
     LU         = NULL,
     na_color   = "grey90",
     add_border = TRUE
 ) {
-
   chk_required_cols(out_res, c("ns", "lu.to", "times", "GHG_biomass"))
   out_int <- fdr_to_ns_int(out_res, ns_map)
 
@@ -510,13 +509,27 @@ fdr_plot_downscaled_GHG <- function(
     dplyr::group_by(ns, lu.to, times) %>%
     dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
 
-  if (!is.null(LU))   inputs <- dplyr::filter(inputs, lu.to %in% LU)
-  if (!is.null(year)) inputs <- dplyr::filter(inputs, times %in% year)
+  if (!is.null(LU)) inputs <- dplyr::filter(inputs, lu.to %in% LU)
 
+  # ----------------------------
+  # CUMULATIVE sum over time for each pixel/region (ns).
+  # ----------------------------
   inputs_agg <- inputs %>%
     dplyr::group_by(ns, times) %>%
-    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop")
+    dplyr::summarise(GHG_biomass = sum(GHG_biomass), .groups = "drop") %>%
+    dplyr::arrange(ns, times) %>%
+    dplyr::group_by(ns) %>%
+    dplyr::mutate(GHG_biomass = cumsum(GHG_biomass)) %>%
+    dplyr::ungroup()
 
+  inputs_agg <- dplyr::filter(inputs_agg, times %in% year)
+
+  inputs_agg <- inputs_agg %>%
+    dplyr::mutate(times = factor(times, levels = sort(unique(as.numeric(as.character(times))))))
+
+  # ----------------------------
+  # Merge with raster grid
+  # ----------------------------
   plot_df <- df_pix %>%
     dplyr::left_join(inputs_agg, by = "ns") %>%
     dplyr::filter(!is.na(GHG_biomass), !is.na(times))
@@ -529,12 +542,12 @@ fdr_plot_downscaled_GHG <- function(
       high     = "#b2182b",
       midpoint = 0,
       na.value = na_color,
-      name     = "GHG from land use change (MtCO2e)",
+      name     = NULL,
       guide    = ggplot2::guide_colorbar(barwidth = 8, barheight = 0.8)
     ) +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
-    ggplot2::facet_grid(times ~ ., labeller = ggplot2::label_value)
+    ggplot2::facet_grid(. ~ times, labeller = ggplot2::label_value)
 
   # ----------------------------
   # Border + white mask outside
@@ -561,8 +574,8 @@ fdr_plot_downscaled_GHG <- function(
       ggplot2::geom_sf(
         data      = border_use,
         fill      = NA,
-        color     = "black",
-        linewidth = 0.8
+        color     = "grey60",
+        linewidth = 0.3
       )
   }
 
