@@ -382,8 +382,7 @@ fdr_plot_downscaled_LUC <- function(
     LU         = NULL,
     limits     = NULL,
     na_color   = "grey90",
-    add_border = TRUE,
-    ncol       = 2
+    add_border = TRUE
 ) {
   chk_required_cols(out_res, c("ns", "lu.to", "times", "value"))
   out_int <- fdr_to_ns_int(out_res, ns_map)
@@ -424,17 +423,6 @@ fdr_plot_downscaled_LUC <- function(
     max_abs <- max(abs(plot_df$value), na.rm = TRUE)
     limits  <- c(-max_abs, max_abs)
   }
-  # Combined facet label: "Cropland - 2030"
-  plot_df <- plot_df %>%
-    dplyr::mutate(
-      facet_lab = paste0(lu_labels[as.character(lu.to)], " - ", times)
-    )
-  # Keep facet order aligned with lu_order first, then times within each LU
-  facet_levels <- plot_df %>%
-    dplyr::distinct(lu.to, times, facet_lab) %>%
-    dplyr::arrange(lu.to, times) %>%
-    dplyr::pull(facet_lab)
-  plot_df$facet_lab <- factor(plot_df$facet_lab, levels = facet_levels)
   p <- ggplot2::ggplot(plot_df) +
     ggplot2::geom_raster(ggplot2::aes(x = x, y = y, fill = value)) +
     ggplot2::scale_fill_gradient2(
@@ -448,7 +436,10 @@ fdr_plot_downscaled_LUC <- function(
     ) +
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
-    ggplot2::facet_wrap(~ facet_lab, ncol = ncol)
+    ggplot2::facet_grid(
+      lu.to ~ times,
+      labeller = ggplot2::labeller(lu.to = lu_labels)
+    )
   # ----------------------------
   # Border + white mask outside
   # ----------------------------
