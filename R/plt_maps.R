@@ -444,7 +444,7 @@ fdr_plot_downscaled_LUC <- function(
     ggplot2::coord_equal(expand = FALSE) +
     theme_fdr_map() +
     ggplot2::facet_grid(
-      times ~ lu.to,
+      lu.to ~ times,
       labeller = ggplot2::labeller(lu.to = lu_labels)
     )
 
