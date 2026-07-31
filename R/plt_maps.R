@@ -189,6 +189,9 @@ fdr_plot_downscaled_LU_one <- function(
     ggplot2::scale_fill_manual(
       values = lu_colors,
       name   = "Dominant land use"
+    ) +
+    ggplot2::theme(
+      legend.title = ggplot2::element_text(margin = ggplot2::margin(b = 8))
     )
 
   # ----------------------------
